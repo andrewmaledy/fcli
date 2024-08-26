@@ -39,7 +39,7 @@ func DeleteMovie(baseURL, apiKey string, movieID int) error {
 	client := &http.Client{}
 
 	// Construct the API endpoint for the DELETE request.
-	endpoint := fmt.Sprintf("%s/movie/%d", baseURL, movieID)
+	endpoint := fmt.Sprintf("%s/movie/%d?deleteFiles=true", baseURL, movieID)
 
 	// Create the HTTP DELETE request.
 	req, err := http.NewRequest("DELETE", endpoint, nil)

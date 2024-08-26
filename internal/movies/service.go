@@ -104,12 +104,12 @@ func HandleSearchAndDelete(radarrAPIKey string, overseerAPIKey string, limit int
 				} else {
 					fmt.Printf(Green+"Request '%v' was successfully deleted from Jellyseer.\n"+Reset, selectedMovie.Title)
 				}
-				err = radarr.DeleteMovie(radarrURL, radarrAPIKey, selectedMovie.Id)
-				if err != nil {
-					fmt.Print(err.Error())
-				} else {
-					fmt.Printf(Green+"Movie '%v' was successfully deleted from Radarr.\n"+Reset, selectedMovie.Title)
-				}
+			}
+			err = radarr.DeleteMovie(radarrURL, radarrAPIKey, selectedMovie.Id)
+			if err != nil {
+				fmt.Print(err.Error())
+			} else {
+				fmt.Printf(Green+"Movie '%v' was successfully deleted from Radarr.\n"+Reset, selectedMovie.Title)
 			}
 
 		} else { // cancelling deletion
