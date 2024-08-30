@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"flashbacklabsio/fcli/cmd/movies"
+	"flashbacklabsio/fcli/cmd/series"
 	"flashbacklabsio/fcli/internal/config"
 
 	"github.com/spf13/cobra"
@@ -26,4 +27,5 @@ func init() {
 	// Add subcommands here
 	config.InitConfig()
 	rootCmd.AddCommand(movies.MoviesCmd)
+	rootCmd.AddCommand(series.SeriesCommand)
 }

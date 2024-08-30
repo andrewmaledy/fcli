@@ -29,8 +29,8 @@ func HandleMoviesCommand() {
 	// Add logic here
 }
 
-func FindMediaItemByTmdbID(tmdbID int, mediaItems []overseer.MediaItem) (*overseer.MediaItem, error) {
-	for _, item := range mediaItems {
+func FindMediaItemByTmdbID(tmdbID int, media []overseer.Media) (*overseer.Media, error) {
+	for _, item := range media {
 		if item.TmdbId == tmdbID {
 			return &item, nil
 		}

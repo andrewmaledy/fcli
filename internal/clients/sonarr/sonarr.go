@@ -42,6 +42,7 @@ func GetSeasonsForSeries(baseURL, apiKey string, seriesID int) ([]Season, error)
 
 // DeleteSeasonForSeries deletes a specific season for a series from the Sonarr API.
 func DeleteSeasonForSeries(baseURL, apiKey string, seriesID int, seasonNumber int) error {
+	return nil
 	client := &http.Client{}
 
 	// Construct the API endpoint for the DELETE request.
@@ -77,7 +78,7 @@ func DeleteSeriesAllSeasons(baseURL, apiKey string, seriesID int) error {
 	client := &http.Client{}
 
 	// Construct the API endpoint for the DELETE request.
-	endpoint := fmt.Sprintf("%s/series/%d", baseURL, seriesID)
+	endpoint := fmt.Sprintf("%s/series/%d?deleteFiles=true", baseURL, seriesID)
 
 	// Create the HTTP DELETE request.
 	req, err := http.NewRequest("DELETE", endpoint, nil)

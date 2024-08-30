@@ -2,22 +2,25 @@ package sonarr
 
 // Series represents the data structure for a series in Sonarr.
 type Series struct {
-	ID           int      `json:"id"`
-	Title        string   `json:"title"`
-	SeasonCount  int      `json:"seasonCount"`
-	SizeOnDisk   int64    `json:"sizeOnDisk"`
-	Monitored    bool     `json:"monitored"`
-	ProfileID    int      `json:"profileId"`
-	Path         string   `json:"path"`
-	SeriesType   string   `json:"seriesType"`
-	Network      string   `json:"network"`
-	Status       string   `json:"status"`
-	Year         int      `json:"year"`
-	SeasonFolder bool     `json:"seasonFolder"`
-	LastInfoSync string   `json:"lastInfoSync"`
-	Runtime      int      `json:"runtime"`
-	Images       []Image  `json:"images"`
-	Genres       []string `json:"genres"`
+	ID           int        `json:"id"`
+	TvdbId       int        `json:"tvdbId"`
+	Title        string     `json:"title"`
+	SeasonCount  int        `json:"seasonCount"`
+	SizeOnDisk   int64      `json:"sizeOnDisk"`
+	Monitored    bool       `json:"monitored"`
+	ProfileID    int        `json:"profileId"`
+	Path         string     `json:"path"`
+	SeriesType   string     `json:"seriesType"`
+	Network      string     `json:"network"`
+	Status       string     `json:"status"`
+	Year         int        `json:"year"`
+	SeasonFolder bool       `json:"seasonFolder"`
+	LastInfoSync string     `json:"lastInfoSync"`
+	Runtime      int        `json:"runtime"`
+	Images       []Image    `json:"images"`
+	Genres       []string   `json:"genres"`
+	Seasons      []Season   `json: "seasons"`
+	Statistics   Statistics `json:"statistics"`
 }
 
 // Season represents the data structure for a season of a series in Sonarr.
