@@ -32,6 +32,17 @@ func FindMediaItemByTvdbId(tvdbId int, mediaItems []overseer.Media) (*overseer.M
 	return nil, fmt.Errorf("no matching MediaItem found for TvdbId %d", tvdbId)
 }
 
+// Function to filter seasons with SizeOnDisk not equal to 0
+func filterSeasons(seasons []sonarr.Season) []sonarr.Season {
+	var filteredSeasons []sonarr.Season
+	for _, season := range seasons {
+		if season.Statistics.SizeOnDisk != 0 {
+			filteredSeasons = append(filteredSeasons, season)
+		}
+	}
+	return filteredSeasons
+}
+
 // HandleSeriesCommand is the entry point for the series command
 func HandleSeriesCommand() {
 	fmt.Println("Series management sub commands can be found here. Supply --help to see available series commands.")
@@ -85,11 +96,14 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 	}
 
 	selectedSeries := sonarrSeries[seriesIndex-1]
+	selectedSeries.Seasons = filterSeasons(selectedSeries.Seasons) //filter out series that aren't actually present.
+
 	fmt.Printf("Selected series: %s\n", selectedSeries.Title)
 
 	fmt.Println("Seasons:")
 	for i, season := range selectedSeries.Seasons {
 		fmt.Printf("%d: Season %d (%.2f GB)\n", i+1, season.SeasonNumber, float64(season.Statistics.SizeOnDisk)/(1024*1024*1024))
+
 	}
 
 	// Ask user to select a season or delete the entire series
@@ -106,8 +120,10 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 		fmt.Printf(Yellow+"Are you sure you want to delete the entire series '%s'? (y/N): "+Reset, selectedSeries.Title)
 		confirmInput, _ := reader.ReadString('\n')
 		confirmInput = strings.TrimSpace(confirmInput)
-		if strings.ToLower(confirmInput) == "y" {
-			err = sonarr.DeleteSeriesAllSeasons(sonarrURL, sonarrAPIKey, selectedSeries.ID)
+		if strings.ToLower(confirmInput) != "y" {
+			fmt.Printf("Skipped deletion of series '%s'.\n", selectedSeries.Title)
+		} else {
+			err = sonarr.DeleteSeries(sonarrURL, sonarrAPIKey, selectedSeries.ID)
 			if err != nil {
 				fmt.Printf("Error deleting series: %v\n", err)
 			} else {
@@ -131,45 +147,36 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 					}
 				}
 			}
-		} else {
-			fmt.Printf("Skipped deletion of series '%s'.\n", selectedSeries.Title)
 		}
 	} else {
-		// Delete selected season
-		selectedSeason := selectedSeries.Seasons[seasonIndex-1]
+		// Delete selected episodefiles
+		selectedSeason := &selectedSeries.Seasons[seasonIndex-1]
+		selectedSeason.Monitored = false
 		fmt.Printf(Yellow+"Are you sure you want to delete Season %d of '%s'? (y/N): "+Reset, selectedSeason.SeasonNumber, selectedSeries.Title)
 		confirmInput, _ := reader.ReadString('\n')
 		confirmInput = strings.TrimSpace(confirmInput)
-		if strings.ToLower(confirmInput) == "y" {
-			err = sonarr.DeleteSeasonForSeries(sonarrURL, sonarrAPIKey, selectedSeries.ID, selectedSeason.SeasonNumber)
+		if strings.ToLower(confirmInput) != "y" {
+			fmt.Printf("Skipped deletion of Season %d of series '%s'.\n", selectedSeason.SeasonNumber, selectedSeries.Title)
+		} else {
+			episodeFiles, err := sonarr.GetEpiosdeFilesForSeries(sonarrURL, sonarrAPIKey, selectedSeries.ID, &selectedSeason.SeasonNumber)
 			if err != nil {
-				fmt.Printf("Error deleting season: %v\n", err)
+				fmt.Printf("Error getting season episode files: %v\n", err)
+			}
+			err = sonarr.DeleteEpisodeFiles(sonarrURL, sonarrAPIKey, episodeFiles)
+			if err != nil {
+				fmt.Printf("Error deleting episodes: %v\n", err)
 			} else {
 				fmt.Printf(Green+"Season %d of series '%s' successfully deleted from Sonarr.\n"+Reset, selectedSeason.SeasonNumber, selectedSeries.Title)
 			}
 
-			// Update Overseer request if applicable
-			mediaItems, err := overseer.GetMedia(overseerURL, overseerAPIKey)
-			if err != nil {
-				fmt.Printf("Error fetching media: %v\n", err)
-			} else {
-				mediaItem, err := FindMediaItemByTvdbId(selectedSeries.TvdbId, mediaItems)
-				if err != nil {
-					fmt.Println(err.Error())
-				} else {
-					// Assuming Overseer allows partial deletion or disabling of seasons
-					// If not supported, delete the whole request
-					// err = overseer.DisableSeason(overseerURL, overseerAPIKey, mediaItem.Id, selectedSeason.SeasonNumber)
-					err = overseer.DeleteMedia(overseerURL, overseerAPIKey, mediaItem.Id)
-					if err != nil {
-						fmt.Printf("Error updating request in Overseer: %v\n", err)
-					} else {
-						fmt.Printf(Green+"Request for Season %d of series '%s' successfully deleted from Overseer.\n"+Reset, selectedSeason.SeasonNumber, selectedSeries.Title)
-					}
-				}
-			}
-		} else {
-			fmt.Printf("Skipped deletion of Season %d of series '%s'.\n", selectedSeason.SeasonNumber, selectedSeries.Title)
 		}
+		// Update the series to unmonitor the deleted season.
+		err := sonarr.UpdateSeries(sonarrURL, sonarrAPIKey, selectedSeries)
+		if err != nil {
+			fmt.Printf("Error removing season %d monitoring. This means the series will be downloaded automatically again. ERROR: %v\n", selectedSeason.SeasonNumber, err)
+		} else {
+			fmt.Printf(Green+"Season %d of series '%s' successfully unmonitored in Sonarr.\n"+Reset, selectedSeason.SeasonNumber, selectedSeries.Title)
+		}
+
 	}
 }

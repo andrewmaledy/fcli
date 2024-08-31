@@ -1,0 +1,144 @@
+ {
+    "title": "Arrested Development",
+    "sortTitle": "arrested development",
+    "status": "ended",
+    "ended": true,
+    "overview": "Level-headed son Michael Bluth takes over family affairs after his father is imprisoned. But the rest of his spoiled, dysfunctional family are making his job unbearable.",
+    "previousAiring": "2019-03-15T07:00:00Z",
+    "network": "Netflix",
+    "airTime": "03:00",
+    "images": [
+      {
+        "coverType": "banner",
+        "url": "/MediaCover/30/banner.jpg?lastWrite=638167551538706095",
+        "remoteUrl": "https://artworks.thetvdb.com/banners/graphical/72173-g.jpg"
+      },
+      {
+        "coverType": "poster",
+        "url": "/MediaCover/30/poster.jpg?lastWrite=638167551539656082",
+        "remoteUrl": "https://artworks.thetvdb.com/banners/posters/72173-8.jpg"
+      },
+      {
+        "coverType": "fanart",
+        "url": "/MediaCover/30/fanart.jpg?lastWrite=638167551540976064",
+        "remoteUrl": "https://artworks.thetvdb.com/banners/fanart/original/72173-2.jpg"
+      },
+      {
+        "coverType": "clearlogo",
+        "url": "/MediaCover/30/clearlogo.png?lastWrite=638404944306721379",
+        "remoteUrl": "https://artworks.thetvdb.com/banners/v4/series/72173/clearlogo/611b5f68663b0.png"
+      }
+    ],
+    "seasons": [
+      {
+        "seasonNumber": 0,
+        "monitored": false,
+        "statistics": {
+          "episodeFileCount": 0,
+          "episodeCount": 0,
+          "totalEpisodeCount": 29,
+          "sizeOnDisk": 0,
+          "releaseGroups": []
+        }
+      },
+      {
+        "seasonNumber": 1,
+        "monitored": true,
+        "statistics": {
+          "previousAiring": "2004-06-06T07:00:00Z",
+          "episodeFileCount": 22,
+          "episodeCount": 22,
+          "totalEpisodeCount": 22,
+          "sizeOnDisk": 34347199894,
+          "releaseGroups": [
+            "bia"
+          ],
+          "percentOfEpisodes": 100
+        }
+      },
+      {
+        "seasonNumber": 2,
+        "monitored": true,
+        "statistics": {
+          "previousAiring": "2005-04-17T07:00:00Z",
+          "episodeFileCount": 18,
+          "episodeCount": 18,
+          "totalEpisodeCount": 18,
+          "sizeOnDisk": 28095904472,
+          "releaseGroups": [
+            "bia"
+          ],
+          "percentOfEpisodes": 100
+        }
+      },
+      {
+        "seasonNumber": 3,
+        "monitored": true,
+        "statistics": {
+          "previousAiring": "2006-02-10T08:00:00Z",
+          "episodeFileCount": 13,
+          "episodeCount": 13,
+          "totalEpisodeCount": 13,
+          "sizeOnDisk": 20288460156,
+          "releaseGroups": [
+            "bia"
+          ],
+          "percentOfEpisodes": 100
+        }
+      },
+      {
+        "seasonNumber": 4,
+        "monitored": true,
+        "statistics": {
+          "previousAiring": "2013-05-26T07:00:00Z",
+          "episodeFileCount": 15,
+          "episodeCount": 15,
+          "totalEpisodeCount": 15,
+          "sizeOnDisk": 31384009387,
+          "releaseGroups": [
+            "NFRiP",
+            "QRUS",
+            "TrollHD"
+          ],
+          "percentOfEpisodes": 100
+        }
+      },
+      {
+        "seasonNumber": 5,
+        "monitored": true,
+        "statistics": {
+          "previousAiring": "2019-03-15T07:00:00Z",
+          "episodeFileCount": 16,
+          "episodeCount": 16,
+          "totalEpisodeCount": 16,
+          "sizeOnDisk": 40085756483,
+          "releaseGroups": [
+            "NTb",
+            "strife"
+          ],
+          "percentOfEpisodes": 100
+        }
+      }
+    ],
+    "year": 2003,
+    "path": "/mnt/media/tv/Arrested Development",
+    "qualityProfileId": 1,
+    "seasonFolder": false,
+    "monitored": true,
+    "monitorNewItems": "all",
+    "useSceneNumbering": false,
+    "runtime": 26,
+    "tvdbId": 72173,
+    "tvRageId": 2649,
+    "tvMazeId": 321,
+    "tmdbId": 4589,
+    "firstAired": "2003-11-02T00:00:00Z",
+    "lastAired": "2019-03-15T00:00:00Z",
+    "seriesType": "standard",
+    "cleanTitle": "arresteddevelopment",
+    "imdbId": "tt0367279",
+    "titleSlug": "arrested-development",
+    "rootFolderPath": "/mnt/media/tv/",
+    "certification": "TV-14",
+    "id": 30
+  }
