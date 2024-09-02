@@ -4,13 +4,12 @@ import (
 	"bufio"
 	"flashbacklabsio/fcli/internal/clients/overseer"
 	"flashbacklabsio/fcli/internal/clients/sonarr"
+	"flashbacklabsio/fcli/internal/config"
 	"fmt"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/spf13/viper"
 )
 
 var Reset = "\033[0m"
@@ -50,18 +49,15 @@ func HandleSeriesCommand() {
 }
 func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, limit int) {
 
-	if sonarrAPIKey == "" {
-		sonarrAPIKey = viper.GetString("sonarr.apiKey")
-	}
-	if overseerAPIKey == "" {
-		overseerAPIKey = viper.GetString("overseer.apiKey")
-	}
-	sonarrURL := viper.GetString("sonarr.url")
-	overseerURL := viper.GetString("overseer.url")
-	fmt.Printf("Sonarr API Endpoint: %v\n", sonarrURL)
+	// Initialize and get configuration
+	config.InitConfig()
+	conf := config.GetConfig()
+	overseerClient := overseer.NewOverseerClient(conf.OverseerURL, conf.OverseerAPIKey)
+	sonarrClient := sonarr.NewSonarrClient(conf.SonarrURL, conf.SonarrAPIKey)
+	fmt.Printf("Sonarr API Endpoint: %v\n", conf.SonarrURL)
 
 	// Fetch and display series from Sonarr
-	sonarrSeries, err := sonarr.GetAllSeries(sonarrURL, sonarrAPIKey)
+	sonarrSeries, err := sonarrClient.GetAllSeries()
 	if err != nil {
 		fmt.Printf("Error fetching series: %v\n", err)
 		return
@@ -123,7 +119,7 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 		if strings.ToLower(confirmInput) != "y" {
 			fmt.Printf("Skipped deletion of series '%s'.\n", selectedSeries.Title)
 		} else {
-			err = sonarr.DeleteSeries(sonarrURL, sonarrAPIKey, selectedSeries.ID)
+			err = sonarrClient.DeleteSeries(selectedSeries.ID)
 			if err != nil {
 				fmt.Printf("Error deleting series: %v\n", err)
 			} else {
@@ -131,7 +127,7 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 			}
 
 			// Delete corresponding request from Overseer
-			mediaItems, err := overseer.GetMedia(overseerURL, overseerAPIKey)
+			mediaItems, err := overseerClient.GetMedia()
 			if err != nil {
 				fmt.Printf("Error fetching media: %v\n", err)
 			} else {
@@ -139,7 +135,7 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 				if err != nil {
 					fmt.Println(err.Error())
 				} else {
-					err = overseer.DeleteMedia(overseerURL, overseerAPIKey, media.Id)
+					err = overseerClient.DeleteMedia(media.Id)
 					if err != nil {
 						fmt.Printf("Error deleting request from Overseer: %v\n", err)
 					} else {
@@ -158,11 +154,11 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 		if strings.ToLower(confirmInput) != "y" {
 			fmt.Printf("Skipped deletion of Season %d of series '%s'.\n", selectedSeason.SeasonNumber, selectedSeries.Title)
 		} else {
-			episodeFiles, err := sonarr.GetEpiosdeFilesForSeries(sonarrURL, sonarrAPIKey, selectedSeries.ID, &selectedSeason.SeasonNumber)
+			episodeFiles, err := sonarrClient.GetEpiosdeFilesForSeries(selectedSeries.ID, &selectedSeason.SeasonNumber)
 			if err != nil {
 				fmt.Printf("Error getting season episode files: %v\n", err)
 			}
-			err = sonarr.DeleteEpisodeFiles(sonarrURL, sonarrAPIKey, episodeFiles)
+			err = sonarrClient.DeleteEpisodeFiles(episodeFiles)
 			if err != nil {
 				fmt.Printf("Error deleting episodes: %v\n", err)
 			} else {
@@ -171,7 +167,7 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 
 		}
 		// Update the series to unmonitor the deleted season.
-		err := sonarr.UpdateSeries(sonarrURL, sonarrAPIKey, selectedSeries)
+		err := sonarrClient.UpdateSeries(selectedSeries)
 		if err != nil {
 			fmt.Printf("Error removing season %d monitoring. This means the series will be downloaded automatically again. ERROR: %v\n", selectedSeason.SeasonNumber, err)
 		} else {

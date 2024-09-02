@@ -4,31 +4,32 @@ import (
 	"bufio"
 	"flashbacklabsio/fcli/internal/clients/overseer"
 	"flashbacklabsio/fcli/internal/clients/radarr"
+	"flashbacklabsio/fcli/internal/config"
 	"fmt"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/spf13/viper"
 )
 
-var Reset = "\033[0m"
-var Red = "\033[31m"
-var Green = "\033[32m"
-var Yellow = "\033[33m"
-var Blue = "\033[34m"
-var Magenta = "\033[35m"
-var Cyan = "\033[36m"
-var Gray = "\033[37m"
-var White = "\033[97m"
+const (
+	Reset   = "\033[0m"
+	Red     = "\033[31m"
+	Green   = "\033[32m"
+	Yellow  = "\033[33m"
+	Blue    = "\033[34m"
+	Magenta = "\033[35m"
+	Cyan    = "\033[36m"
+	Gray    = "\033[37m"
+	White   = "\033[97m"
+)
 
-// HandleMoviesCommand is the entry point for the movies command
+// HandleMoviesCommand is the entry point for the movies command.
 func HandleMoviesCommand() {
-	fmt.Println("Movie management sub commands can be found here. Supply --help to see available movie commands.")
-	// Add logic here
+	fmt.Println("Movie management subcommands can be found here. Supply --help to see available movie commands.")
 }
 
+// FindMediaItemByTmdbID searches for a media item by its TMDB ID.
 func FindMediaItemByTmdbID(tmdbID int, media []overseer.Media) (*overseer.Media, error) {
 	for _, item := range media {
 		if item.TmdbId == tmdbID {
@@ -38,83 +39,102 @@ func FindMediaItemByTmdbID(tmdbID int, media []overseer.Media) (*overseer.Media,
 	return nil, fmt.Errorf("no matching MovieItem found for TMDBID %d", tmdbID)
 }
 
-func HandleSearchAndDelete(radarrAPIKey string, overseerAPIKey string, limit int) {
-
-	if radarrAPIKey == "" {
-		radarrAPIKey = viper.GetString("radarr.apiKey")
-	}
-	if overseerAPIKey == "" {
-		overseerAPIKey = viper.GetString("overseer.apiKey")
-
-	}
-	radarrURL := viper.GetString("radarr.url")
-	overseerURL := viper.GetString("overseer.url")
-	fmt.Printf("Radarr API Endpoint %v\n", radarrURL)
-	// Fetch and display movies from Radarr
-	radarrMovies := radarr.FetchMovies(radarrURL, radarrAPIKey)
-	sort.Slice(radarrMovies, func(i, j int) bool {
-		return radarrMovies[i].SizeOnDisk > radarrMovies[j].SizeOnDisk
+// DisplayMovies displays a list of movies sorted by size.
+func DisplayMovies(movies []radarr.Movie, limit int) {
+	sort.Slice(movies, func(i, j int) bool {
+		return movies[i].SizeOnDisk > movies[j].SizeOnDisk
 	})
-	// Print movies with a number for selection
-	fmt.Println("Movies:")
 
-	for i, movie := range radarrMovies {
-		if i > limit-1 {
+	fmt.Println("Movies:")
+	for i, movie := range movies {
+		if i >= limit {
 			break
 		}
-		fmt.Printf("%d: %s (%.2f GB)\n", i+1, movie.Title, (float64(movie.SizeOnDisk) / (1024 * 1024 * 1024)))
+		fmt.Printf("%d: %s (%.2f GB)\n", i+1, movie.Title, float64(movie.SizeOnDisk)/(1024*1024*1024))
 	}
+}
 
-	// Ask user to select movies to delete
+// GetUserSelections prompts the user to select movies to delete.
+func GetUserSelections(limit int) ([]int, error) {
 	fmt.Print(Green + "Select movie numbers to delete (comma-separated): " + Reset)
 	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	selections := strings.Split(input[:len(input)-1], ",")
-
-	result, err := overseer.GetMedia(overseerURL, overseerAPIKey)
-
+	input, err := reader.ReadString('\n')
 	if err != nil {
-		fmt.Print(err.Error())
+		return nil, fmt.Errorf("failed to read input: %w", err)
 	}
 
-	for _, selection := range selections {
-		selection = strings.TrimSpace(selection)
-		movieIndex, err := strconv.Atoi(selection)
-		if err != nil || movieIndex < 1 || movieIndex > len(radarrMovies) {
+	// Parse selections
+	var selections []int
+	for _, selection := range strings.Split(strings.TrimSpace(input), ",") {
+		movieIndex, err := strconv.Atoi(strings.TrimSpace(selection))
+		if err != nil || movieIndex < 1 || movieIndex > limit {
 			fmt.Printf("Invalid selection: %s\n", selection)
 			continue
 		}
+		selections = append(selections, movieIndex)
+	}
+	return selections, nil
+}
 
+// ConfirmDeletion prompts the user to confirm the deletion of a movie.
+func ConfirmDeletion(movieTitle string, movieSize int64) bool {
+	fmt.Printf(Yellow+"Are you sure you want to delete '%s' (%.2f GB)? (y/N): "+Reset, movieTitle, float64(movieSize)/(1024*1024*1024))
+	reader := bufio.NewReader(os.Stdin)
+	confirmInput, _ := reader.ReadString('\n')
+	return strings.ToLower(strings.TrimSpace(confirmInput)) == "y"
+}
+
+// HandleSearchAndDelete manages the search and delete process.
+func HandleSearchAndDelete(radarrAPIKey, overseerAPIKey string, limit int) {
+	// Initialize and get configuration
+	config.InitConfig()
+	conf := config.GetConfig()
+	radarrClient := radarr.NewRadarrClient(conf.RadarrURL, conf.RadarrAPIKey)
+	overseerClient := overseer.NewOverseerClient(conf.OverseerURL, conf.OverseerAPIKey)
+	fmt.Printf("Radarr API Endpoint %v\n", conf.RadarrURL)
+
+	// Fetch and display movies from Radarr
+	radarrMovies, _ := radarrClient.FetchMovies()
+	DisplayMovies(radarrMovies, limit)
+
+	// Get user selections
+	selections, err := GetUserSelections(len(radarrMovies))
+	if err != nil {
+		fmt.Println(Red + err.Error() + Reset)
+		return
+	}
+
+	// Fetch media items from Overseer
+	overseerMedia, err := overseerClient.GetMedia()
+	if err != nil {
+		fmt.Println(Red + err.Error() + Reset)
+		return
+	}
+
+	// Process selections
+	for _, movieIndex := range selections {
 		selectedMovie := radarrMovies[movieIndex-1]
-		fmt.Printf(Yellow+"Are you sure you want to delete '%s' (%d GB)? (y/N): "+Reset, selectedMovie.Title, selectedMovie.SizeOnDisk/(1024*1024*1024))
-		confirmInput, _ := reader.ReadString('\n')
-		confirmInput = strings.TrimSpace(confirmInput)
-		// Proceed with Overseer delete
-		if strings.ToLower(confirmInput) == "y" {
 
-			movieItem, err := FindMediaItemByTmdbID(selectedMovie.TmdbId, result)
-			if err != nil {
-				fmt.Println(err.Error())
+		if ConfirmDeletion(selectedMovie.Title, selectedMovie.SizeOnDisk) {
+			// Delete media item from Overseer
+			if movieItem, err := FindMediaItemByTmdbID(selectedMovie.TmdbId, overseerMedia); err != nil {
+				fmt.Println(Red + err.Error() + Reset)
 			} else {
-
-				fmt.Printf("Found matching media item for %v. Overseer ID: %d \n", selectedMovie.Title, movieItem.Id)
-				err = overseer.DeleteMedia(overseerURL, overseerAPIKey, movieItem.Id)
-				if err != nil {
-					fmt.Print(err.Error())
+				if err := overseerClient.DeleteMedia(movieItem.Id); err != nil {
+					fmt.Println(Red + err.Error() + Reset)
 				} else {
-					fmt.Printf(Green+"Request '%v' was successfully deleted from Jellyseer.\n"+Reset, selectedMovie.Title)
+					fmt.Printf(Green+"Request '%v' was successfully deleted from Overseer.\n"+Reset, selectedMovie.Title)
 				}
 			}
-			err = radarr.DeleteMovie(radarrURL, radarrAPIKey, selectedMovie.Id)
-			if err != nil {
-				fmt.Print(err.Error())
+
+			// Delete movie from Radarr
+			if err := radarrClient.DeleteMovie(selectedMovie.Id); err != nil {
+				fmt.Println(Red + err.Error() + Reset)
 			} else {
 				fmt.Printf(Green+"Movie '%v' was successfully deleted from Radarr.\n"+Reset, selectedMovie.Title)
 			}
-
-		} else { // cancelling deletion
+		} else {
 			fmt.Printf("Skipped deletion of '%s'.\n", selectedMovie.Title)
 		}
 	}
-
 }

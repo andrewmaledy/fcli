@@ -6,22 +6,35 @@ import (
 	"net/http"
 )
 
-func FetchMovies(baseUrl, apiKey string) []Movie {
-	params := "/movie?excludeLocalCovers=false&apikey=" + apiKey
-	resp, err := http.Get(baseUrl + params)
+// RadarrClient holds the base URL and API key for the Radarr API.
+type RadarrClient struct {
+	BaseURL string
+	APIKey  string
+}
+
+// NewRadarrClient creates a new instance of RadarrClient with the given base URL and API key.
+func NewRadarrClient(baseURL, apiKey string) *RadarrClient {
+	return &RadarrClient{
+		BaseURL: baseURL,
+		APIKey:  apiKey,
+	}
+}
+
+// FetchMovies retrieves the list of movies from Radarr.
+func (client *RadarrClient) FetchMovies() ([]Movie, error) {
+	params := "/movie?excludeLocalCovers=false&apikey=" + client.APIKey
+	resp, err := http.Get(client.BaseURL + params)
 	if err != nil {
-		fmt.Println("Error fetching movies:", err)
-		return nil
+		return nil, fmt.Errorf("error fetching movies: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var movies []Movie
 	if err := json.NewDecoder(resp.Body).Decode(&movies); err != nil {
-		fmt.Println("Error decoding response:", err)
-		return nil
+		return nil, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	return filterMovies(movies)
+	return filterMovies(movies), nil
 }
 
 func filterMovies(movies []Movie) []Movie {
@@ -34,33 +47,30 @@ func filterMovies(movies []Movie) []Movie {
 	return filtered
 }
 
-// DeleteMediaFile sends a DELETE request to the Radarr API to remove a MediaFile by its ID.
-func DeleteMovie(baseURL, apiKey string, movieID int) error {
-	client := &http.Client{}
-
+// DeleteMovie sends a DELETE request to the Radarr API to remove a movie by its ID.
+func (client *RadarrClient) DeleteMovie(movieID int) error {
 	// Construct the API endpoint for the DELETE request.
-	endpoint := fmt.Sprintf("%s/movie/%d?deleteFiles=true", baseURL, movieID)
+	endpoint := fmt.Sprintf("%s/movie/%d?deleteFiles=true&apikey=%s", client.BaseURL, movieID, client.APIKey)
 
 	// Create the HTTP DELETE request.
 	req, err := http.NewRequest("DELETE", endpoint, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %v", err)
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	// Set required headers.
 	req.Header.Set("accept", "*/*")
-	req.Header.Set("X-Api-Key", apiKey)
 
 	// Execute the HTTP request.
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to delete media file: %v", err)
+		return fmt.Errorf("failed to delete movie: %w", err)
 	}
 	defer resp.Body.Close()
 
 	// Handle non-OK HTTP responses.
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to Movie with ID %d. Status code: %d", movieID, resp.StatusCode)
+		return fmt.Errorf("failed to delete movie with ID %d. Status code: %d", movieID, resp.StatusCode)
 	}
 
 	return nil

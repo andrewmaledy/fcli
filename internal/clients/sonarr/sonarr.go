@@ -7,10 +7,37 @@ import (
 	"net/http"
 )
 
+// SonarrClient is a struct that holds the base URL and API key for the Sonarr API.
+type SonarrClient struct {
+	baseURL string
+	apiKey  string
+}
+
+// NewSonarrClient creates a new SonarrClient with the given base URL and API key.
+func NewSonarrClient(baseURL, apiKey string) *SonarrClient {
+	return &SonarrClient{
+		baseURL: baseURL,
+		apiKey:  apiKey,
+	}
+}
+
+// setHeaders sets the common headers for a Sonarr API request.
+func (c *SonarrClient) setHeaders(req *http.Request) {
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("X-Api-Key", c.apiKey)
+}
+
 // GetAllSeries fetches all series from the Sonarr API.
-func GetAllSeries(baseURL, apiKey string) ([]Series, error) {
-	params := "/series?apikey=" + apiKey
-	resp, err := http.Get(baseURL + params)
+func (c *SonarrClient) GetAllSeries() ([]Series, error) {
+	params := "/series"
+	req, err := http.NewRequest("GET", c.baseURL+params, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %v", err)
+	}
+	c.setHeaders(req)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching series: %v", err)
 	}
@@ -25,15 +52,13 @@ func GetAllSeries(baseURL, apiKey string) ([]Series, error) {
 }
 
 // GetEpisodeFiles fetches all episode files for a specific series from the Sonarr API.
-func GetEpiosdeFilesForSeries(baseURL, apiKey string, seriesID int, seasonNumber *int) ([]EpisodeFile, error) {
+func (c *SonarrClient) GetEpiosdeFilesForSeries(seriesID int, seasonNumber *int) ([]EpisodeFile, error) {
 	params := fmt.Sprintf("/episodefile?seriesId=%d", seriesID)
-	req, err := http.NewRequest("GET", baseURL+params, nil)
+	req, err := http.NewRequest("GET", c.baseURL+params, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %v", err)
 	}
-
-	req.Header.Set("accept", "application/json")
-	req.Header.Set("X-Api-Key", apiKey)
+	c.setHeaders(req)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -66,7 +91,7 @@ func GetEpiosdeFilesForSeries(baseURL, apiKey string, seriesID int, seasonNumber
 }
 
 // UpdateSeries sends a PUT request to the Sonarr API to update a series by its ID.
-func UpdateSeries(baseURL, apiKey string, series Series) error {
+func (c *SonarrClient) UpdateSeries(series Series) error {
 	client := &http.Client{}
 
 	// Convert the Series struct to JSON.
@@ -75,7 +100,7 @@ func UpdateSeries(baseURL, apiKey string, series Series) error {
 		return fmt.Errorf("failed to marshal series: %v", err)
 	}
 	// Construct the API endpoint for the PUT request.
-	endpoint := fmt.Sprintf("%s/series/%d", baseURL, series.ID)
+	endpoint := fmt.Sprintf("%s/series/%d", c.baseURL, series.ID)
 
 	// Create the HTTP PUT request.
 	req, err := http.NewRequest("PUT", endpoint, bytes.NewBuffer(requestBody))
@@ -83,9 +108,8 @@ func UpdateSeries(baseURL, apiKey string, series Series) error {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
 	// Set required headers.
+	c.setHeaders(req)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("X-Api-Key", apiKey)
 
 	// Execute the HTTP request.
 	resp, err := client.Do(req)
@@ -102,12 +126,12 @@ func UpdateSeries(baseURL, apiKey string, series Series) error {
 	return nil
 }
 
-// DeleteSeriesAllSeasons deletes all seasons for a specific series from the Sonarr API.
-func DeleteSeries(baseURL, apiKey string, seriesID int) error {
+// DeleteSeries deletes a specific series from the Sonarr API.
+func (c *SonarrClient) DeleteSeries(seriesID int) error {
 	client := &http.Client{}
 
 	// Construct the API endpoint for the DELETE request.
-	endpoint := fmt.Sprintf("%s/series/%d?deleteFiles=true", baseURL, seriesID)
+	endpoint := fmt.Sprintf("%s/series/%d?deleteFiles=true", c.baseURL, seriesID)
 
 	// Create the HTTP DELETE request.
 	req, err := http.NewRequest("DELETE", endpoint, nil)
@@ -116,8 +140,8 @@ func DeleteSeries(baseURL, apiKey string, seriesID int) error {
 	}
 
 	// Set required headers.
-	req.Header.Set("accept", "*/*")
-	req.Header.Set("X-Api-Key", apiKey)
+	c.setHeaders(req)
+	req.Header.Set("Accept", "*/*")
 
 	// Execute the HTTP request.
 	resp, err := client.Do(req)
@@ -135,7 +159,7 @@ func DeleteSeries(baseURL, apiKey string, seriesID int) error {
 }
 
 // DeleteEpisodeFiles deletes the specified episode files by their IDs from the Sonarr API.
-func DeleteEpisodeFiles(baseURL, apiKey string, episodeFiles []EpisodeFile) error {
+func (c *SonarrClient) DeleteEpisodeFiles(episodeFiles []EpisodeFile) error {
 	// Extract episode file IDs from the provided episode files.
 	var episodeFileIds []int
 	for _, file := range episodeFiles {
@@ -154,7 +178,7 @@ func DeleteEpisodeFiles(baseURL, apiKey string, episodeFiles []EpisodeFile) erro
 	}
 
 	// Construct the API endpoint.
-	endpoint := fmt.Sprintf("%s/episodefile/bulk", baseURL)
+	endpoint := fmt.Sprintf("%s/episodefile/bulk", c.baseURL)
 
 	// Create the HTTP DELETE request.
 	req, err := http.NewRequest("DELETE", endpoint, bytes.NewBuffer(jsonBody))
@@ -163,9 +187,9 @@ func DeleteEpisodeFiles(baseURL, apiKey string, episodeFiles []EpisodeFile) erro
 	}
 
 	// Set required headers.
-	req.Header.Set("accept", "*/*")
-	req.Header.Set("X-Api-Key", apiKey)
+	c.setHeaders(req)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "*/*")
 
 	// Execute the HTTP request.
 	client := &http.Client{}
