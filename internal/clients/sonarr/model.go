@@ -69,7 +69,7 @@ type Statistics struct {
 	EpisodeCount      int      `json:"episodeCount"`
 	TotalEpisodeCount int      `json:"totalEpisodeCount"`
 	SizeOnDisk        int64    `json:"sizeOnDisk"`
-	ReleaseGroups     []string `json:releaseGroups`
+	ReleaseGroups     []string `json:"releaseGroups"`
 }
 
 // EpisodeFile represents the basic structure of an episode file in Sonarr.
