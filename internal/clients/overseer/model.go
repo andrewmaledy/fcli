@@ -37,11 +37,42 @@ type Season struct {
 	SeasonNumber int `json:"seasonNumber"`
 }
 
-// RequestItem represents each request entry returned by the API.
 type Request struct {
-	Id        int       `json:"id"`
-	Is4k      bool      `json:"is4k"`
-	CreatedAt time.Time `json:"createdAt"`
-	Media     Media     `json:"media"`
-	Season    []Season  `json:"seasons"`
+	ID          int         `json:"id"`
+	Status      int         `json:"status"`
+	Media       string      `json:"media"`
+	CreatedAt   time.Time   `json:"createdAt"`
+	UpdatedAt   time.Time   `json:"updatedAt"`
+	RequestedBy RequestedBy `json:"requestedBy"`
+	ModifiedBy  ModifiedBy  `json:"modifiedBy"`
+	Is4K        bool        `json:"is4k"`
+	ServerID    int         `json:"serverId"`
+	ProfileID   int         `json:"profileId"`
+	RootFolder  string      `json:"rootFolder"`
+}
+type RequestedBy struct {
+	ID           int       `json:"id"`
+	Email        string    `json:"email"`
+	Username     string    `json:"username"`
+	PlexToken    string    `json:"plexToken"`
+	PlexUsername string    `json:"plexUsername"`
+	UserType     int       `json:"userType"`
+	Permissions  int       `json:"permissions"`
+	Avatar       string    `json:"avatar"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	RequestCount int       `json:"requestCount"`
+}
+type ModifiedBy struct {
+	ID           int       `json:"id"`
+	Email        string    `json:"email"`
+	Username     string    `json:"username"`
+	PlexToken    string    `json:"plexToken"`
+	PlexUsername string    `json:"plexUsername"`
+	UserType     int       `json:"userType"`
+	Permissions  int       `json:"permissions"`
+	Avatar       string    `json:"avatar"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	RequestCount int       `json:"requestCount"`
 }

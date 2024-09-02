@@ -1,87 +1,187 @@
 package sonarr
 
-type Series struct {
-	Title             string           `json:"title"`
-	AlternateTitles   []AlternateTitle `json:"alternateTitles,omitempty"`
-	SortTitle         string           `json:"sortTitle,omitempty"`
-	Status            string           `json:"status"`
-	Ended             bool             `json:"ended"`
-	Overview          string           `json:"overview,omitempty"`
-	PreviousAiring    string           `json:"previousAiring,omitempty"`
-	Network           string           `json:"network"`
-	AirTime           string           `json:"airTime,omitempty"`
-	Images            []Image          `json:"images"`
-	RemotePoster      string           `json:"remotePoster,omitempty"`
-	Seasons           []Season         `json:"seasons"`
-	Year              int              `json:"year"`
-	Path              string           `json:"path"`
-	QualityProfileID  int              `json:"qualityProfileId"`
-	SeasonFolder      bool             `json:"seasonFolder"`
-	Monitored         bool             `json:"monitored"`
-	MonitorNewItems   string           `json:"monitorNewItems,omitempty"`
-	UseSceneNumbering bool             `json:"useSceneNumbering"`
-	Runtime           int              `json:"runtime"`
-	TvdbId            int              `json:"tvdbId"`
-	TvrageID          int              `json:"tvRageId,omitempty"`
-	TVMazeID          int              `json:"tvMazeId,omitempty"`
-	TmdbID            int              `json:"tmdbId"`
-	FirstAired        string           `json:"firstAired,omitempty"`
-	LastAired         string           `json:"lastAired,omitempty"`
-	SeriesType        string           `json:"seriesType"`
-	CleanTitle        string           `json:"cleanTitle,omitempty"`
-	ImdbID            string           `json:"imdbId,omitempty"`
-	TitleSlug         string           `json:"titleSlug,omitempty"`
-	RootFolderPath    string           `json:"rootFolderPath,omitempty"`
-	Folder            string           `json:"folder,omitempty"`
-	Certification     string           `json:"certification,omitempty"`
-	Genres            []string         `json:"genres"`
-	Tags              []int            `json:"tags,omitempty"`
-	Added             string           `json:"added,omitempty"`
-	Statistics        *Statistics      `json:"statistics,omitempty"`
-	ID                int              `json:"id"`
-}
+import "time"
 
-type AlternateTitle struct {
+type Series struct {
+	ID                int               `json:"id"`
+	Title             string            `json:"title"`
+	AlternateTitles   []AlternateTitles `json:"alternateTitles"`
+	SortTitle         string            `json:"sortTitle"`
+	Status            string            `json:"status"`
+	Ended             bool              `json:"ended"`
+	ProfileName       string            `json:"profileName"`
+	Overview          string            `json:"overview"`
+	NextAiring        time.Time         `json:"nextAiring"`
+	PreviousAiring    time.Time         `json:"previousAiring"`
+	Network           string            `json:"network"`
+	AirTime           string            `json:"airTime"`
+	Images            []Images          `json:"images"`
+	OriginalLanguage  OriginalLanguage  `json:"originalLanguage"`
+	RemotePoster      string            `json:"remotePoster"`
+	Seasons           []Season          `json:"seasons"`
+	Year              int               `json:"year"`
+	Path              string            `json:"path"`
+	QualityProfileID  int               `json:"qualityProfileId"`
+	SeasonFolder      bool              `json:"seasonFolder"`
+	Monitored         bool              `json:"monitored"`
+	MonitorNewItems   string            `json:"monitorNewItems"`
+	UseSceneNumbering bool              `json:"useSceneNumbering"`
+	Runtime           int               `json:"runtime"`
+	TvdbID            int               `json:"tvdbId"`
+	TvRageID          int               `json:"tvRageId"`
+	TvMazeID          int               `json:"tvMazeId"`
+	TmdbID            int               `json:"tmdbId"`
+	FirstAired        time.Time         `json:"firstAired"`
+	LastAired         time.Time         `json:"lastAired"`
+	SeriesType        string            `json:"seriesType"`
+	CleanTitle        string            `json:"cleanTitle"`
+	ImdbID            string            `json:"imdbId"`
+	TitleSlug         string            `json:"titleSlug"`
+	RootFolderPath    string            `json:"rootFolderPath"`
+	Folder            string            `json:"folder"`
+	Certification     string            `json:"certification"`
+	Genres            []string          `json:"genres"`
+	Tags              []int             `json:"tags"`
+	Added             time.Time         `json:"added"`
+	AddOptions        AddOptions        `json:"addOptions"`
+	Ratings           Ratings           `json:"ratings"`
+	Statistics        Statistics        `json:"statistics"`
+	EpisodesChanged   bool              `json:"episodesChanged"`
+}
+type AlternateTitles struct {
 	Title             string `json:"title"`
 	SeasonNumber      int    `json:"seasonNumber"`
-	SceneSeasonNumber int    `json:"sceneSeasonNumber,omitempty"`
-	SceneOrigin       string `json:"sceneOrigin,omitempty"`
-	Comment           string `json:"comment,omitempty"`
+	SceneSeasonNumber int    `json:"sceneSeasonNumber"`
+	SceneOrigin       string `json:"sceneOrigin"`
+	Comment           string `json:"comment"`
 }
-
-// Season represents the data structure for a season of a series in Sonarr.
-type Season struct {
-	SeasonNumber int        `json:"seasonNumber"`
-	Monitored    bool       `json:"monitored"`
-	Statistics   Statistics `json:"statistics"`
-}
-
-// Image represents the data structure for an image in Sonarr.
-type Image struct {
+type Images struct {
 	CoverType string `json:"coverType"`
 	URL       string `json:"url"`
 	RemoteURL string `json:"remoteUrl"`
 }
-
-// Statistics represents the data structure for season statistics in Sonarr.
-type Statistics struct {
-	EpisodeFileCount  int      `json:"episodeFileCount"`
-	EpisodeCount      int      `json:"episodeCount"`
-	TotalEpisodeCount int      `json:"totalEpisodeCount"`
-	SizeOnDisk        int64    `json:"sizeOnDisk"`
-	ReleaseGroups     []string `json:"releaseGroups"`
+type OriginalLanguage struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
-
-// EpisodeFile represents the basic structure of an episode file in Sonarr.
+type Statistics struct {
+	NextAiring        time.Time `json:"nextAiring"`
+	PreviousAiring    time.Time `json:"previousAiring"`
+	EpisodeFileCount  int       `json:"episodeFileCount"`
+	EpisodeCount      int       `json:"episodeCount"`
+	TotalEpisodeCount int       `json:"totalEpisodeCount"`
+	SizeOnDisk        int       `json:"sizeOnDisk"`
+	ReleaseGroups     []string  `json:"releaseGroups"`
+	PercentOfEpisodes float64   `json:"percentOfEpisodes"`
+}
+type Season struct {
+	SeasonNumber int        `json:"seasonNumber"`
+	Monitored    bool       `json:"monitored"`
+	Statistics   Statistics `json:"statistics"`
+	Images       []Images   `json:"images"`
+}
+type AddOptions struct {
+	IgnoreEpisodesWithFiles      bool   `json:"ignoreEpisodesWithFiles"`
+	IgnoreEpisodesWithoutFiles   bool   `json:"ignoreEpisodesWithoutFiles"`
+	Monitor                      string `json:"monitor"`
+	SearchForMissingEpisodes     bool   `json:"searchForMissingEpisodes"`
+	SearchForCutoffUnmetEpisodes bool   `json:"searchForCutoffUnmetEpisodes"`
+}
+type Ratings struct {
+	Votes int     `json:"votes"`
+	Value float32 `json:"value"`
+}
 type EpisodeFile struct {
-	ID                  int    `json:"id"`
-	SeriesID            int    `json:"seriesId"`
-	SeasonNumber        int    `json:"seasonNumber"`
-	RelativePath        string `json:"relativePath"`
-	Path                string `json:"path"`
-	Size                int64  `json:"size"`
-	DateAdded           string `json:"dateAdded"`
-	SceneName           string `json:"sceneName"`
-	ReleaseGroup        string `json:"releaseGroup"`
-	QualityCutoffNotMet bool   `json:"qualityCutoffNotMet"`
+	ID                  int             `json:"id"`
+	SeriesID            int             `json:"seriesId"`
+	SeasonNumber        int             `json:"seasonNumber"`
+	RelativePath        string          `json:"relativePath"`
+	Path                string          `json:"path"`
+	Size                int             `json:"size"`
+	DateAdded           time.Time       `json:"dateAdded"`
+	SceneName           string          `json:"sceneName"`
+	ReleaseGroup        string          `json:"releaseGroup"`
+	Languages           []Languages     `json:"languages"`
+	Quality             Quality         `json:"quality"`
+	CustomFormats       []CustomFormats `json:"customFormats"`
+	CustomFormatScore   int             `json:"customFormatScore"`
+	IndexerFlags        int             `json:"indexerFlags"`
+	ReleaseType         string          `json:"releaseType"`
+	MediaInfo           MediaInfo       `json:"mediaInfo"`
+	QualityCutoffNotMet bool            `json:"qualityCutoffNotMet"`
+}
+type Languages struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+type Quality struct {
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	Source     string `json:"source"`
+	Resolution int    `json:"resolution"`
+}
+type Revision struct {
+	Version  int  `json:"version"`
+	Real     int  `json:"real"`
+	IsRepack bool `json:"isRepack"`
+}
+type SelectOptions struct {
+	Value int    `json:"value"`
+	Name  string `json:"name"`
+	Order int    `json:"order"`
+	Hint  string `json:"hint"`
+}
+type Fields struct {
+	Order                       int             `json:"order"`
+	Name                        string          `json:"name"`
+	Label                       string          `json:"label"`
+	Unit                        string          `json:"unit"`
+	HelpText                    string          `json:"helpText"`
+	HelpTextWarning             string          `json:"helpTextWarning"`
+	HelpLink                    string          `json:"helpLink"`
+	Value                       string          `json:"value"`
+	Type                        string          `json:"type"`
+	Advanced                    bool            `json:"advanced"`
+	SelectOptions               []SelectOptions `json:"selectOptions"`
+	SelectOptionsProviderAction string          `json:"selectOptionsProviderAction"`
+	Section                     string          `json:"section"`
+	Hidden                      string          `json:"hidden"`
+	Privacy                     string          `json:"privacy"`
+	Placeholder                 string          `json:"placeholder"`
+	IsFloat                     bool            `json:"isFloat"`
+}
+type Specifications struct {
+	ID                 int      `json:"id"`
+	Name               string   `json:"name"`
+	Implementation     string   `json:"implementation"`
+	ImplementationName string   `json:"implementationName"`
+	InfoLink           string   `json:"infoLink"`
+	Negate             bool     `json:"negate"`
+	Required           bool     `json:"required"`
+	Fields             []Fields `json:"fields"`
+	Presets            []string `json:"presets"`
+}
+type CustomFormats struct {
+	ID                              int              `json:"id"`
+	Name                            string           `json:"name"`
+	IncludeCustomFormatWhenRenaming bool             `json:"includeCustomFormatWhenRenaming"`
+	Specifications                  []Specifications `json:"specifications"`
+}
+type MediaInfo struct {
+	ID                    int    `json:"id"`
+	AudioBitrate          int    `json:"audioBitrate"`
+	AudioChannels         int    `json:"audioChannels"`
+	AudioCodec            string `json:"audioCodec"`
+	AudioLanguages        string `json:"audioLanguages"`
+	AudioStreamCount      int    `json:"audioStreamCount"`
+	VideoBitDepth         int    `json:"videoBitDepth"`
+	VideoBitrate          int    `json:"videoBitrate"`
+	VideoCodec            string `json:"videoCodec"`
+	VideoFps              int    `json:"videoFps"`
+	VideoDynamicRange     string `json:"videoDynamicRange"`
+	VideoDynamicRangeType string `json:"videoDynamicRangeType"`
+	Resolution            string `json:"resolution"`
+	RunTime               string `json:"runTime"`
+	ScanType              string `json:"scanType"`
+	Subtitles             string `json:"subtitles"`
 }

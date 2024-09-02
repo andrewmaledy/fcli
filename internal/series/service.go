@@ -12,15 +12,17 @@ import (
 	"strings"
 )
 
-var Reset = "\033[0m"
-var Red = "\033[31m"
-var Green = "\033[32m"
-var Yellow = "\033[33m"
-var Blue = "\033[34m"
-var Magenta = "\033[35m"
-var Cyan = "\033[36m"
-var Gray = "\033[37m"
-var White = "\033[97m"
+const (
+	Reset   = "\033[0m"
+	Red     = "\033[31m"
+	Green   = "\033[32m"
+	Yellow  = "\033[33m"
+	Blue    = "\033[34m"
+	Magenta = "\033[35m"
+	Cyan    = "\033[36m"
+	Gray    = "\033[37m"
+	White   = "\033[97m"
+)
 
 func FindMediaItemByTvdbId(tvdbId int, mediaItems []overseer.Media) (*overseer.Media, error) {
 	for _, item := range mediaItems {
@@ -137,7 +139,7 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 			if err != nil {
 				fmt.Printf("Error fetching media: %v\n", err)
 			} else {
-				media, err := FindMediaItemByTvdbId(selectedSeries.TvdbId, mediaItems)
+				media, err := FindMediaItemByTvdbId(selectedSeries.TvdbID, mediaItems)
 				if err != nil {
 					fmt.Println(err.Error())
 				} else {

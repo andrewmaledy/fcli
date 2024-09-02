@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 )
 
 const (
@@ -39,17 +40,55 @@ func FindMediaItemByTmdbID(tmdbID int, media []overseer.Media) (*overseer.Media,
 	return nil, fmt.Errorf("no matching MovieItem found for TMDBID %d", tmdbID)
 }
 
-// DisplayMovies displays a list of movies sorted by size.
-func DisplayMovies(movies []radarr.Movie, limit int) {
+func HandleGet(radarrAPIKey string, overseerAPIKey string, limit int, skip int) {
+	// Initialize and get configuration
+	config.InitConfig()
+	conf := config.GetConfig()
+	if len(radarrAPIKey) > 0 {
+		conf.RadarrAPIKey = radarrAPIKey
+	}
+	if len(overseerAPIKey) > 0 {
+		conf.OverseerAPIKey = overseerAPIKey
+	}
+
+	radarrClient := radarr.NewRadarrClient(conf.RadarrURL, conf.RadarrAPIKey)
+	fmt.Printf("Radarr API Endpoint %v\n", conf.RadarrURL)
+	radarrMovies, err := radarrClient.GetMovies()
+	if err != nil {
+		fmt.Printf("Could not get movies: %v\n", err.Error())
+		return
+	}
+
+	// Initialize tabwriter
+	w := tabwriter.NewWriter(os.Stdout, 1, 1, 2, ' ', 0)
+
+	// Print header
+	fmt.Fprintf(w, "Title\tOriginal Title\tSize on Disk (GB)\tPath\n")
+	fmt.Fprintf(w, "-----\t--------------\t------------\t-----------------\n")
+
+	// Print movie details
+	for i, movie := range radarrMovies {
+		if i >= limit {
+			break
+		}
+		sizeOnDiskGB := float64(movie.Statistics.SizeOnDisk) / (1024 * 1024 * 1024) // Convert bytes to GB
+		fmt.Fprintf(w, "%s\t%s\t%.2f GB\t%s\n", movie.Title, movie.OriginalTitle, sizeOnDiskGB, movie.MovieFile.Path)
+	}
+
+	// Flush the writer to ensure all output is printed
+	w.Flush()
+}
+
+func DisplayMovies(movies []radarr.Movie, limit int, skip int) {
+	// Sort movies by SizeOnDisk in descending order
 	sort.Slice(movies, func(i, j int) bool {
 		return movies[i].SizeOnDisk > movies[j].SizeOnDisk
 	})
 
 	fmt.Println("Movies:")
-	for i, movie := range movies {
-		if i >= limit {
-			break
-		}
+	// Iterate over the movies, starting from the skip index
+	for i := skip; i < len(movies) && i < skip+limit; i++ {
+		movie := movies[i]
 		fmt.Printf("%d: %s (%.2f GB)\n", i+1, movie.Title, float64(movie.SizeOnDisk)/(1024*1024*1024))
 	}
 }
@@ -85,7 +124,7 @@ func ConfirmDeletion(movieTitle string, movieSize int64) bool {
 }
 
 // HandleSearchAndDelete manages the search and delete process.
-func HandleSearchAndDelete(radarrAPIKey, overseerAPIKey string, limit int) {
+func HandleSearchAndDelete(radarrAPIKey, overseerAPIKey string, limit int, skip int) {
 	// Initialize and get configuration
 	config.InitConfig()
 	conf := config.GetConfig()
@@ -100,8 +139,11 @@ func HandleSearchAndDelete(radarrAPIKey, overseerAPIKey string, limit int) {
 	fmt.Printf("Radarr API Endpoint %v\n", conf.RadarrURL)
 
 	// Fetch and display movies from Radarr
-	radarrMovies, _ := radarrClient.FetchMovies()
-	DisplayMovies(radarrMovies, limit)
+	radarrMovies, err := radarrClient.GetMovies()
+	if err != nil {
+		fmt.Printf("Could not get movies: %v", err.Error())
+	}
+	DisplayMovies(radarrMovies, limit, skip)
 
 	// Get user selections
 	selections, err := GetUserSelections(len(radarrMovies))
@@ -121,9 +163,9 @@ func HandleSearchAndDelete(radarrAPIKey, overseerAPIKey string, limit int) {
 	for _, movieIndex := range selections {
 		selectedMovie := radarrMovies[movieIndex-1]
 
-		if ConfirmDeletion(selectedMovie.Title, selectedMovie.SizeOnDisk) {
+		if ConfirmDeletion(selectedMovie.Title, int64(selectedMovie.Statistics.SizeOnDisk)) {
 			// Delete media item from Overseer
-			if movieItem, err := FindMediaItemByTmdbID(selectedMovie.TmdbId, overseerMedia); err != nil {
+			if movieItem, err := FindMediaItemByTmdbID(selectedMovie.TMDBID, overseerMedia); err != nil {
 				fmt.Println(Red + err.Error() + Reset)
 			} else {
 				if err := overseerClient.DeleteMedia(movieItem.Id); err != nil {
@@ -134,7 +176,7 @@ func HandleSearchAndDelete(radarrAPIKey, overseerAPIKey string, limit int) {
 			}
 
 			// Delete movie from Radarr
-			if err := radarrClient.DeleteMovie(selectedMovie.Id); err != nil {
+			if err := radarrClient.DeleteMovie(selectedMovie.ID); err != nil {
 				fmt.Println(Red + err.Error() + Reset)
 			} else {
 				fmt.Printf(Green+"Movie '%v' was successfully deleted from Radarr.\n"+Reset, selectedMovie.Title)

@@ -7,13 +7,11 @@ import (
 	"net/http"
 )
 
-// SonarrClient is a struct that holds the base URL and API key for the Sonarr API.
 type SonarrClient struct {
 	baseURL string
 	apiKey  string
 }
 
-// NewSonarrClient creates a new SonarrClient with the given base URL and API key.
 func NewSonarrClient(baseURL, apiKey string) *SonarrClient {
 	return &SonarrClient{
 		baseURL: baseURL,
@@ -97,7 +95,7 @@ func (c *SonarrClient) UpdateSeries(series Series) error {
 	// Convert the Series struct to JSON.
 	requestBody, err := json.Marshal(series)
 	if err != nil {
-		return fmt.Errorf("failed to marshal series: %v", err)
+		return fmt.Errorf("failed to marshal series: %v", series)
 	}
 	// Construct the API endpoint for the PUT request.
 	endpoint := fmt.Sprintf("%s/series/%d", c.baseURL, series.ID)

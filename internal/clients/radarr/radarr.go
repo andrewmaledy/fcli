@@ -21,7 +21,7 @@ func NewRadarrClient(baseURL, apiKey string) *RadarrClient {
 }
 
 // FetchMovies retrieves the list of movies from Radarr.
-func (client *RadarrClient) FetchMovies() ([]Movie, error) {
+func (client *RadarrClient) GetMovies() ([]Movie, error) {
 	params := "/movie?excludeLocalCovers=false&apikey=" + client.APIKey
 	resp, err := http.Get(client.BaseURL + params)
 	if err != nil {
@@ -34,17 +34,7 @@ func (client *RadarrClient) FetchMovies() ([]Movie, error) {
 		return nil, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	return filterMovies(movies), nil
-}
-
-func filterMovies(movies []Movie) []Movie {
-	var filtered []Movie
-	for _, movie := range movies {
-		if movie.SizeOnDisk > 0 {
-			filtered = append(filtered, movie)
-		}
-	}
-	return filtered
+	return movies, nil
 }
 
 // DeleteMovie sends a DELETE request to the Radarr API to remove a movie by its ID.

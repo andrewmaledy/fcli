@@ -9,7 +9,7 @@
             "console": "integratedTerminal",            
             "program": "${workspaceFolder}",
             "args": [
-                "series", "searchanddelete", "--limit", "50"
+                "movies", "searchanddelete", "--limit", "50"
             ]
         }
     ]
