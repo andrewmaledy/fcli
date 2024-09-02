@@ -52,6 +52,12 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 	// Initialize and get configuration
 	config.InitConfig()
 	conf := config.GetConfig()
+	if len(sonarrAPIKey) > 0 {
+		conf.SonarrAPIKey = sonarrAPIKey
+	}
+	if len(overseerAPIKey) > 0 {
+		conf.OverseerAPIKey = overseerAPIKey
+	}
 	overseerClient := overseer.NewOverseerClient(conf.OverseerURL, conf.OverseerAPIKey)
 	sonarrClient := sonarr.NewSonarrClient(conf.SonarrURL, conf.SonarrAPIKey)
 	fmt.Printf("Sonarr API Endpoint: %v\n", conf.SonarrURL)

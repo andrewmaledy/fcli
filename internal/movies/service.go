@@ -89,6 +89,12 @@ func HandleSearchAndDelete(radarrAPIKey, overseerAPIKey string, limit int) {
 	// Initialize and get configuration
 	config.InitConfig()
 	conf := config.GetConfig()
+	if len(radarrAPIKey) > 0 {
+		conf.RadarrAPIKey = radarrAPIKey
+	}
+	if len(overseerAPIKey) > 0 {
+		conf.OverseerAPIKey = overseerAPIKey
+	}
 	radarrClient := radarr.NewRadarrClient(conf.RadarrURL, conf.RadarrAPIKey)
 	overseerClient := overseer.NewOverseerClient(conf.OverseerURL, conf.OverseerAPIKey)
 	fmt.Printf("Radarr API Endpoint %v\n", conf.RadarrURL)
