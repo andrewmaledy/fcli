@@ -17,11 +17,5 @@ var getCommand = &cobra.Command{
 }
 
 func init() {
-	// Set default values to environment variables or fallback to empty strings
-
-	//getCommand.Flags().StringVar(&radarrAPIKey, "radarr-api-key", "", "API key for Radarr")
-	//getCommand.Flags().StringVar(&overseerAPIKey, "overseer-api-key", "", "API key for Overseer")
-	//getCommand.Flags().IntVar(&limit, "limit", 10, "Limit of movies to show")
-
 	MoviesCmd.AddCommand(getCommand)
 }

@@ -17,6 +17,5 @@ var searchAndDeleteCmd = &cobra.Command{
 }
 
 func init() {
-	// Set default values to environment variables or fallback to empty strings
 	MoviesCmd.AddCommand(searchAndDeleteCmd)
 }

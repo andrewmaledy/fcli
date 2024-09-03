@@ -25,7 +25,6 @@ var MoviesCmd = &cobra.Command{
 
 func init() {
 	// Set default values to environment variables or fallback to empty strings
-
 	MoviesCmd.PersistentFlags().IntVar(&limit, "limit", 10, "Limit of movies to show")
 	MoviesCmd.PersistentFlags().StringVar(&radarrAPIKey, "radarr-api-key", "", "API key for Radarr")
 	MoviesCmd.PersistentFlags().StringVar(&overseerAPIKey, "overseer-api-key", "", "API key for Overseer")
