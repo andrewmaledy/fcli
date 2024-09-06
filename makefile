@@ -1,3 +1,4 @@
 build:
-	go build -o bin/main main.go
+	go build -o fcli
+install:
 	sudo cp fcli /usr/local/bin

@@ -158,7 +158,6 @@ func (c *SonarrClient) DeleteSeries(seriesID int) error {
 
 // DeleteEpisodeFiles deletes the specified episode files by their IDs from the Sonarr API.
 func (c *SonarrClient) DeleteEpisodeFiles(episodeFiles []EpisodeFile) error {
-	return nil
 	// Extract episode file IDs from the provided episode files.
 	var episodeFileIds []int
 	for _, file := range episodeFiles {
