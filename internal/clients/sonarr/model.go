@@ -81,11 +81,11 @@ type Season struct {
 	Images       []Images   `json:"images"`
 }
 type AddOptions struct {
-	IgnoreEpisodesWithFiles      bool   `json:"ignoreEpisodesWithFiles"`
-	IgnoreEpisodesWithoutFiles   bool   `json:"ignoreEpisodesWithoutFiles"`
-	Monitor                      string `json:"monitor"`
-	SearchForMissingEpisodes     bool   `json:"searchForMissingEpisodes"`
-	SearchForCutoffUnmetEpisodes bool   `json:"searchForCutoffUnmetEpisodes"`
+	IgnoreEpisodesWithFiles      bool   `json:"ignoreEpisodesWithFiles,omitempty"`
+	IgnoreEpisodesWithoutFiles   bool   `json:"ignoreEpisodesWithoutFiles,omitempty"`
+	Monitor                      string `json:"monitor,omitempty"`
+	SearchForMissingEpisodes     bool   `json:"searchForMissingEpisodes,omitempty"`
+	SearchForCutoffUnmetEpisodes bool   `json:"searchForCutoffUnmetEpisodes,omitempty"`
 }
 type Ratings struct {
 	Votes int     `json:"votes"`
@@ -168,20 +168,20 @@ type CustomFormats struct {
 	Specifications                  []Specifications `json:"specifications"`
 }
 type MediaInfo struct {
-	ID                    int    `json:"id"`
-	AudioBitrate          int    `json:"audioBitrate"`
-	AudioChannels         int    `json:"audioChannels"`
-	AudioCodec            string `json:"audioCodec"`
-	AudioLanguages        string `json:"audioLanguages"`
-	AudioStreamCount      int    `json:"audioStreamCount"`
-	VideoBitDepth         int    `json:"videoBitDepth"`
-	VideoBitrate          int    `json:"videoBitrate"`
-	VideoCodec            string `json:"videoCodec"`
-	VideoFps              int    `json:"videoFps"`
-	VideoDynamicRange     string `json:"videoDynamicRange"`
-	VideoDynamicRangeType string `json:"videoDynamicRangeType"`
-	Resolution            string `json:"resolution"`
-	RunTime               string `json:"runTime"`
-	ScanType              string `json:"scanType"`
-	Subtitles             string `json:"subtitles"`
+	ID                    int     `json:"id"`
+	AudioBitrate          int     `json:"audioBitrate"`
+	AudioChannels         int     `json:"audioChannels"`
+	AudioCodec            string  `json:"audioCodec"`
+	AudioLanguages        string  `json:"audioLanguages"`
+	AudioStreamCount      int     `json:"audioStreamCount"`
+	VideoBitDepth         int     `json:"videoBitDepth"`
+	VideoBitrate          int     `json:"videoBitrate"`
+	VideoCodec            string  `json:"videoCodec"`
+	VideoFps              float32 `json:"videoFps"`
+	VideoDynamicRange     string  `json:"videoDynamicRange"`
+	VideoDynamicRangeType string  `json:"videoDynamicRangeType"`
+	Resolution            string  `json:"resolution"`
+	RunTime               string  `json:"runTime"`
+	ScanType              string  `json:"scanType"`
+	Subtitles             string  `json:"subtitles"`
 }
