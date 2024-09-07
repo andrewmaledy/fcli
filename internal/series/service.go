@@ -53,7 +53,7 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 
 	// Initialize and get configuration
 	config.InitConfig()
-	conf := config.GetConfig()
+	conf := config.GetConfig("", sonarrAPIKey, overseerAPIKey)
 	if len(sonarrAPIKey) > 0 {
 		conf.SonarrAPIKey = sonarrAPIKey
 	}

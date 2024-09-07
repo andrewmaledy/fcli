@@ -30,16 +30,27 @@ func InitConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatalf("Error reading config file, %s", err)
 	}
+
+}
+func assignAPIKey(key string, fallback string) string {
+	if len(key) > 0 {
+		return key
+	}
+	return viper.GetString(fallback)
 }
 
 // GetConfig returns a Configuration struct populated with values from viper.
-func GetConfig() *Configuration {
-	return &Configuration{
-		RadarrURL:      viper.GetString("radarr.url"),
-		RadarrAPIKey:   viper.GetString("radarr.apiKey"),
-		OverseerURL:    viper.GetString("overseer.url"),
-		OverseerAPIKey: viper.GetString("overseer.apiKey"),
-		SonarrAPIKey:   viper.GetString("sonarr.apiKey"),
-		SonarrURL:      viper.GetString("sonarr.url"),
+func GetConfig(sonarrAPIKey string, radarrAPIKey string, overseerAPIKey string) *Configuration {
+	InitConfig()
+
+	conf := &Configuration{
+		RadarrURL:    viper.GetString("radarr.url"),
+		OverseerURL:  viper.GetString("overseer.url"),
+		SonarrAPIKey: viper.GetString("sonarr.apiKey"),
+		SonarrURL:    viper.GetString("sonarr.url"),
 	}
+	conf.SonarrAPIKey = assignAPIKey(sonarrAPIKey, "sonarr.apiKey")
+	conf.RadarrAPIKey = assignAPIKey(radarrAPIKey, "radarr.apiKey")
+	conf.OverseerAPIKey = assignAPIKey(overseerAPIKey, "overseer.apiKey")
+	return conf
 }

@@ -25,7 +25,7 @@ var searchAndDeleteCmd = &cobra.Command{
 func init() {
 	// Set default values to environment variables or fallback to empty strings
 
-	searchAndDeleteCmd.Flags().StringVar(&sonarrAPIKey, "radarr-api-key", "", "API key for Radarr")
+	searchAndDeleteCmd.Flags().StringVar(&sonarrAPIKey, "sonarr-api-key", "", "API key for Sonarr")
 	searchAndDeleteCmd.Flags().StringVar(&overseerAPIKey, "overseer-api-key", "", "API key for Overseer")
 	searchAndDeleteCmd.Flags().IntVar(&limit, "limit", 10, "Limit of movies to show")
 

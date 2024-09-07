@@ -42,8 +42,7 @@ func FindMediaItemByTmdbID(tmdbID int, media []overseer.Media) (*overseer.Media,
 
 func HandleGet(radarrAPIKey string, overseerAPIKey string, limit int, skip int) {
 	// Initialize and get configuration
-	config.InitConfig()
-	conf := config.GetConfig()
+	conf := config.GetConfig("", radarrAPIKey, overseerAPIKey)
 	if len(radarrAPIKey) > 0 {
 		conf.RadarrAPIKey = radarrAPIKey
 	}
@@ -124,16 +123,10 @@ func ConfirmDeletion(movieTitle string, movieSize int64) bool {
 }
 
 // HandleSearchAndDelete manages the search and delete process.
-func HandleSearchAndDelete(radarrAPIKey, overseerAPIKey string, limit int, skip int) {
+func HandleSearchAndDelete(radarrAPIKey string, overseerAPIKey string, limit int, skip int) {
 	// Initialize and get configuration
-	config.InitConfig()
-	conf := config.GetConfig()
-	if len(radarrAPIKey) > 0 {
-		conf.RadarrAPIKey = radarrAPIKey
-	}
-	if len(overseerAPIKey) > 0 {
-		conf.OverseerAPIKey = overseerAPIKey
-	}
+	conf := config.GetConfig(radarrAPIKey, "", overseerAPIKey)
+
 	radarrClient := radarr.NewRadarrClient(conf.RadarrURL, conf.RadarrAPIKey)
 	overseerClient := overseer.NewOverseerClient(conf.OverseerURL, conf.OverseerAPIKey)
 	fmt.Printf("Radarr API Endpoint %v\n", conf.RadarrURL)
