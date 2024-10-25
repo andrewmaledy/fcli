@@ -62,8 +62,8 @@ func HandleGet(radarrAPIKey string, overseerAPIKey string, limit int, skip int) 
 	w := tabwriter.NewWriter(os.Stdout, 1, 1, 2, ' ', 0)
 
 	// Print header
-	fmt.Fprintf(w, "Title\tOriginal Title\tSize on Disk (GB)\tPath\n")
-	fmt.Fprintf(w, "-----\t--------------\t------------\t-----------------\n")
+	fmt.Fprintf(w, "TMDBID\tTitle\tOriginal Title\tSize on Disk (GB)\tPath\n")
+	fmt.Fprintf(w, "------\t-------\t--------------\t------------\t-------\n")
 
 	// Print movie details
 	for i, movie := range radarrMovies {
@@ -71,7 +71,7 @@ func HandleGet(radarrAPIKey string, overseerAPIKey string, limit int, skip int) 
 			break
 		}
 		sizeOnDiskGB := float64(movie.Statistics.SizeOnDisk) / (1024 * 1024 * 1024) // Convert bytes to GB
-		fmt.Fprintf(w, "%s\t%s\t%.2f GB\t%s\n", movie.Title, movie.OriginalTitle, sizeOnDiskGB, movie.MovieFile.Path)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%.2f GB\t%s\n", movie.TMDBID, movie.Title, movie.OriginalTitle, sizeOnDiskGB, movie.MovieFile.Path)
 	}
 
 	// Flush the writer to ensure all output is printed

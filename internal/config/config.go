@@ -41,7 +41,6 @@ func assignAPIKey(key string, fallback string) string {
 
 // GetConfig returns a Configuration struct populated with values from viper.
 func GetConfig(sonarrAPIKey string, radarrAPIKey string, overseerAPIKey string) *Configuration {
-	InitConfig()
 
 	conf := &Configuration{
 		RadarrURL:    viper.GetString("radarr.url"),

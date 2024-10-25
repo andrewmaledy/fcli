@@ -170,7 +170,7 @@ type CustomFormats struct {
 type MediaInfo struct {
 	ID                    int     `json:"id"`
 	AudioBitrate          int     `json:"audioBitrate"`
-	AudioChannels         int     `json:"audioChannels"`
+	AudioChannels         float32 `json:"audioChannels"`
 	AudioCodec            string  `json:"audioCodec"`
 	AudioLanguages        string  `json:"audioLanguages"`
 	AudioStreamCount      int     `json:"audioStreamCount"`
