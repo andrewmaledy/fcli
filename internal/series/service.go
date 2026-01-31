@@ -1,29 +1,25 @@
 package series
 
 import (
-	"bufio"
 	"flashbacklabsio/fcli/internal/clients/overseer"
 	"flashbacklabsio/fcli/internal/clients/sonarr"
 	"flashbacklabsio/fcli/internal/config"
+	"flashbacklabsio/fcli/internal/tui"
 	"fmt"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
+
+	"github.com/charmbracelet/bubbles/table"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
-const (
-	Reset   = "\033[0m"
-	Red     = "\033[31m"
-	Green   = "\033[32m"
-	Yellow  = "\033[33m"
-	Blue    = "\033[34m"
-	Magenta = "\033[35m"
-	Cyan    = "\033[36m"
-	Gray    = "\033[37m"
-	White   = "\033[97m"
-)
+// HandleSeriesCommand is the entry point for the series command.
+func HandleSeriesCommand() {
+	fmt.Println("Series management subcommands can be found here. Supply --help to see available series commands.")
+}
 
+// FindMediaItemByTvdbId searches for a media item by its TVDB ID.
 func FindMediaItemByTvdbId(tvdbId int, mediaItems []overseer.Media) (*overseer.Media, error) {
 	for _, item := range mediaItems {
 		if item.TvdbId == tvdbId {
@@ -33,26 +29,148 @@ func FindMediaItemByTvdbId(tvdbId int, mediaItems []overseer.Media) (*overseer.M
 	return nil, fmt.Errorf("no matching MediaItem found for TvdbId %d", tvdbId)
 }
 
-// Function to filter seasons with SizeOnDisk not equal to 0
+// filterSeasons returns only seasons that have files on disk.
 func filterSeasons(seasons []sonarr.Season) []sonarr.Season {
-	var filteredSeasons []sonarr.Season
+	var filtered []sonarr.Season
 	for _, season := range seasons {
 		if season.Statistics.SizeOnDisk != 0 {
-			filteredSeasons = append(filteredSeasons, season)
+			filtered = append(filtered, season)
 		}
 	}
-	return filteredSeasons
+	return filtered
 }
 
-// HandleSeriesCommand is the entry point for the series command
-func HandleSeriesCommand() {
-	fmt.Println("Series management sub commands can be found here. Supply --help to see available series commands.")
-	// Add logic here
-}
-func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, limit int) {
+// --- Static table for `get` command (still uses bubbles table) ---
 
-	// Initialize and get configuration
-	config.InitConfig()
+func seriesTableColumns() []table.Column {
+	return []table.Column{
+		{Title: "Title", Width: 30},
+		{Title: "Year", Width: 6},
+		{Title: "Seasons", Width: 9},
+		{Title: "Episodes", Width: 10},
+		{Title: "Genres", Width: 20},
+		{Title: "Rating", Width: 8},
+		{Title: "Size", Width: 10},
+	}
+}
+
+func seriesToRow(s sonarr.Series) table.Row {
+	seasonCount := len(filterSeasons(s.Seasons))
+	return table.Row{
+		tui.TruncateString(s.Title, 28),
+		fmt.Sprintf("%d", s.Year),
+		fmt.Sprintf("%d", seasonCount),
+		tui.FormatEpisodes(s.Statistics.EpisodeFileCount, s.Statistics.TotalEpisodeCount),
+		tui.FormatGenres(s.Genres, 18),
+		tui.FormatRating(s.Ratings.Value, ""),
+		tui.FormatSizeGB(s.Statistics.SizeOnDisk),
+	}
+}
+
+// --- Interactive list columns and items for `searchanddelete` ---
+
+func seriesColumns() []tui.ColumnDef {
+	return []tui.ColumnDef{
+		{Title: "Title", Width: 30},
+		{Title: "Year", Width: 6},
+		{Title: "Seasons", Width: 9},
+		{Title: "Episodes", Width: 10},
+		{Title: "Genres", Width: 20},
+		{Title: "Rating", Width: 8},
+		{Title: "Size", Width: 10},
+	}
+}
+
+func seriesToListItem(s sonarr.Series) tui.ListItem {
+	seasons := filterSeasons(s.Seasons)
+
+	columns := []string{
+		tui.TruncateString(s.Title, 28),
+		fmt.Sprintf("%d", s.Year),
+		fmt.Sprintf("%d", len(seasons)),
+		tui.FormatEpisodes(s.Statistics.EpisodeFileCount, s.Statistics.TotalEpisodeCount),
+		tui.FormatGenres(s.Genres, 18),
+		tui.FormatRating(s.Ratings.Value, ""),
+		tui.FormatSizeGB(s.Statistics.SizeOnDisk),
+	}
+
+	label := fmt.Sprintf("%s (%s)", s.Title, tui.FormatSizeGB(s.Statistics.SizeOnDisk))
+
+	detail := []tui.KeyValue{
+		{Key: "Title", Value: s.Title},
+		{Key: "Year", Value: fmt.Sprintf("%d", s.Year)},
+		{Key: "Network", Value: s.Network},
+		{Key: "Status", Value: s.Status},
+		{Key: "Runtime", Value: fmt.Sprintf("%d min", s.Runtime)},
+		{Key: "Genres", Value: strings.Join(s.Genres, ", ")},
+	}
+
+	ratingStr := tui.FormatRating(s.Ratings.Value, "")
+	if s.Ratings.Votes > 0 {
+		ratingStr += fmt.Sprintf(" (%d votes)", s.Ratings.Votes)
+	}
+	detail = append(detail,
+		tui.KeyValue{Key: "Rating", Value: ratingStr},
+		tui.KeyValue{Key: "Seasons", Value: fmt.Sprintf("%d", len(seasons))},
+		tui.KeyValue{Key: "Episodes", Value: tui.FormatEpisodes(s.Statistics.EpisodeFileCount, s.Statistics.TotalEpisodeCount)},
+		tui.KeyValue{Key: "Size", Value: tui.FormatSizeGB(s.Statistics.SizeOnDisk)},
+		tui.KeyValue{Key: "Path", Value: s.Path},
+	)
+
+	// Build children from seasons
+	var children []tui.ListItem
+	for _, season := range seasons {
+		childColumns := []string{
+			fmt.Sprintf("Season %d", season.SeasonNumber),
+			"",
+			"",
+			tui.FormatEpisodes(season.Statistics.EpisodeFileCount, season.Statistics.TotalEpisodeCount),
+			"",
+			"",
+			tui.FormatSizeGB(season.Statistics.SizeOnDisk),
+		}
+
+		childLabel := fmt.Sprintf("%s - S%d (%s)",
+			s.Title, season.SeasonNumber, tui.FormatSizeGB(season.Statistics.SizeOnDisk))
+
+		childDetail := []tui.KeyValue{
+			{Key: "Series", Value: s.Title},
+			{Key: "Season", Value: fmt.Sprintf("%d", season.SeasonNumber)},
+			{Key: "Episodes", Value: tui.FormatEpisodes(season.Statistics.EpisodeFileCount, season.Statistics.TotalEpisodeCount)},
+			{Key: "Size", Value: tui.FormatSizeGB(season.Statistics.SizeOnDisk)},
+			{Key: "Monitored", Value: fmt.Sprintf("%v", season.Monitored)},
+		}
+
+		children = append(children, tui.ListItem{
+			Columns:  childColumns,
+			Label:    childLabel,
+			Detail:   childDetail,
+			Children: nil,
+		})
+	}
+
+	return tui.ListItem{
+		Columns:  columns,
+		Label:    label,
+		Detail:   detail,
+		Children: children,
+	}
+}
+
+func initializeSonarrClient(conf *config.Configuration) *sonarr.SonarrClient {
+	sonarrClient := sonarr.NewSonarrClient(conf.SonarrURL, conf.SonarrAPIKey)
+
+	_, err := sonarrClient.GetAllSeries()
+	if err != nil {
+		fmt.Println(tui.RenderConnectionError("Sonarr", conf.SonarrURL, err))
+		os.Exit(1)
+	}
+
+	return sonarrClient
+}
+
+// HandleGet displays all series in a styled static table.
+func HandleGet(sonarrAPIKey string, overseerAPIKey string, limit int) {
 	conf := config.GetConfig("", sonarrAPIKey, overseerAPIKey)
 	if len(sonarrAPIKey) > 0 {
 		conf.SonarrAPIKey = sonarrAPIKey
@@ -60,127 +178,181 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 	if len(overseerAPIKey) > 0 {
 		conf.OverseerAPIKey = overseerAPIKey
 	}
-	overseerClient := overseer.NewOverseerClient(conf.OverseerURL, conf.OverseerAPIKey)
-	sonarrClient := sonarr.NewSonarrClient(conf.SonarrURL, conf.SonarrAPIKey)
-	fmt.Printf("Sonarr API Endpoint: %v\n", conf.SonarrURL)
 
-	// Fetch and display series from Sonarr
-	sonarrSeries, err := sonarrClient.GetAllSeries()
+	sonarrClient := initializeSonarrClient(conf)
+
+	allSeries, err := sonarrClient.GetAllSeries()
 	if err != nil {
-		fmt.Printf("Error fetching series: %v\n", err)
-		return
+		fmt.Println(tui.RenderConnectionError("Sonarr", conf.SonarrURL, err))
+		os.Exit(1)
 	}
 
-	sort.Slice(sonarrSeries, func(i, j int) bool {
-		return sonarrSeries[i].Statistics.SizeOnDisk > sonarrSeries[j].Statistics.SizeOnDisk
+	sort.Slice(allSeries, func(i, j int) bool {
+		return allSeries[i].Statistics.SizeOnDisk > allSeries[j].Statistics.SizeOnDisk
 	})
 
-	for i, series := range sonarrSeries {
-		if i > limit-1 {
-			break
+	var rows []table.Row
+	for i := 0; i < len(allSeries) && i < limit; i++ {
+		rows = append(rows, seriesToRow(allSeries[i]))
+	}
+
+	header := tui.TitleStyle.Render(fmt.Sprintf("Series (%d total, showing %d)", len(allSeries), len(rows)))
+	fmt.Printf("\n%s\n\n%s\n", header, tui.RenderStaticTable(seriesTableColumns(), rows))
+}
+
+// HandleSearchAndDeleteSeries manages the interactive search and delete.
+// Series with seasons auto-expand when highlighted. Users can select
+// entire series or individual seasons.
+func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, limit int) {
+	conf := config.GetConfig("", sonarrAPIKey, overseerAPIKey)
+	if len(sonarrAPIKey) > 0 {
+		conf.SonarrAPIKey = sonarrAPIKey
+	}
+	if len(overseerAPIKey) > 0 {
+		conf.OverseerAPIKey = overseerAPIKey
+	}
+
+	sonarrClient := sonarr.NewSonarrClient(conf.SonarrURL, conf.SonarrAPIKey)
+	overseerClient := overseer.NewOverseerClient(conf.OverseerURL, conf.OverseerAPIKey)
+
+	var seriesData []sonarr.Series
+
+	fetchFn := func() ([]tui.ListItem, error) {
+		allSeries, err := sonarrClient.GetAllSeries()
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch series from Sonarr: %w", err)
 		}
 
-		fmt.Printf("%d: %s (%.2f GB)\n", i+1, series.Title, float64(series.Statistics.SizeOnDisk)/(1024*1024*1024))
+		sort.Slice(allSeries, func(i, j int) bool {
+			return allSeries[i].Statistics.SizeOnDisk > allSeries[j].Statistics.SizeOnDisk
+		})
+
+		end := limit
+		if end > len(allSeries) {
+			end = len(allSeries)
+		}
+		seriesData = allSeries[:end]
+
+		var items []tui.ListItem
+		for _, s := range seriesData {
+			items = append(items, seriesToListItem(s))
+		}
+		return items, nil
 	}
 
-	// Ask user to select a series
-	fmt.Print(Green + "Select series number to view seasons or delete (0 to delete entire series): " + Reset)
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	seriesIndex, err := strconv.Atoi(strings.TrimSpace(input))
+	deleteFn := func(selections []tui.Selection) []string {
+		var results []string
 
-	if err != nil || seriesIndex < 0 || seriesIndex > len(sonarrSeries) {
-		fmt.Printf("Invalid selection: %s\n", input)
-		return
-	}
+		// Group selections by series
+		type seriesAction struct {
+			deleteWhole bool
+			seasonIdxs  []int
+		}
+		actions := make(map[int]*seriesAction)
 
-	if seriesIndex == 0 {
-		fmt.Println("No series selected. Exiting.")
-		return
-	}
-
-	selectedSeries := sonarrSeries[seriesIndex-1]
-	selectedSeries.Seasons = filterSeasons(selectedSeries.Seasons) //filter out series that aren't actually present.
-
-	fmt.Printf("Selected series: %s\n", selectedSeries.Title)
-
-	fmt.Println("Seasons:")
-	for i, season := range selectedSeries.Seasons {
-		fmt.Printf("%d: Season %d (%.2f GB)\n", i+1, season.SeasonNumber, float64(season.Statistics.SizeOnDisk)/(1024*1024*1024))
-
-	}
-
-	// Ask user to select a season or delete the entire series
-	fmt.Print(Green + "Select season number to delete or enter 0 to delete the entire series: " + Reset)
-	seasonInput, _ := reader.ReadString('\n')
-	seasonIndex, err := strconv.Atoi(strings.TrimSpace(seasonInput))
-	if err != nil || seasonIndex < 0 || seasonIndex > len(selectedSeries.Seasons) {
-		fmt.Printf("Invalid selection: %s\n", seasonInput)
-		return
-	}
-
-	if seasonIndex == 0 {
-		// Delete entire series
-		fmt.Printf(Yellow+"Are you sure you want to delete the entire series '%s'? (y/N): "+Reset, selectedSeries.Title)
-		confirmInput, _ := reader.ReadString('\n')
-		confirmInput = strings.TrimSpace(confirmInput)
-		if strings.ToLower(confirmInput) != "y" {
-			fmt.Printf("Skipped deletion of series '%s'.\n", selectedSeries.Title)
-		} else {
-			err = sonarrClient.DeleteSeries(selectedSeries.ID)
-			if err != nil {
-				fmt.Printf("Error deleting series: %v\n", err)
+		for _, sel := range selections {
+			if sel.ItemIndex >= len(seriesData) {
+				continue
+			}
+			a, ok := actions[sel.ItemIndex]
+			if !ok {
+				a = &seriesAction{}
+				actions[sel.ItemIndex] = a
+			}
+			if sel.ChildIndex == -1 {
+				a.deleteWhole = true
 			} else {
-				fmt.Printf(Green+"Series '%s' successfully deleted from Sonarr.\n"+Reset, selectedSeries.Title)
+				a.seasonIdxs = append(a.seasonIdxs, sel.ChildIndex)
+			}
+		}
+
+		for itemIdx, action := range actions {
+			s := seriesData[itemIdx]
+			seasons := filterSeasons(s.Seasons)
+
+			if action.deleteWhole || len(action.seasonIdxs) == len(seasons) {
+				results = append(results, deleteEntireSeries(s, sonarrClient, overseerClient)...)
+				continue
 			}
 
-			// Delete corresponding request from Overseer
-			mediaItems, err := overseerClient.GetMedia()
-			if err != nil {
-				fmt.Printf("Error fetching media: %v\n", err)
-			} else {
-				media, err := FindMediaItemByTvdbId(selectedSeries.TvdbID, mediaItems)
+			// Delete individual seasons
+			for _, seasonIdx := range action.seasonIdxs {
+				if seasonIdx >= len(seasons) {
+					continue
+				}
+				season := seasons[seasonIdx]
+				episodeFiles, err := sonarrClient.GetEpiosdeFilesForSeries(s.ID, &season.SeasonNumber)
 				if err != nil {
-					fmt.Println(err.Error())
+					results = append(results, tui.ErrorStyle.Render(
+						fmt.Sprintf("Failed to get episode files for %s S%d: %s",
+							s.Title, season.SeasonNumber, err)))
+					continue
+				}
+				if err := sonarrClient.DeleteEpisodeFiles(episodeFiles); err != nil {
+					results = append(results, tui.ErrorStyle.Render(
+						fmt.Sprintf("Failed to delete %s S%d episodes: %s",
+							s.Title, season.SeasonNumber, err)))
 				} else {
-					err = overseerClient.DeleteMedia(media.Id)
-					if err != nil {
-						fmt.Printf("Error deleting request from Overseer: %v\n", err)
-					} else {
-						fmt.Printf(Green+"Request '%s' successfully deleted from Overseer.\n"+Reset, selectedSeries.Title)
+					results = append(results, tui.SuccessStyle.Render(
+						fmt.Sprintf("Deleted Season %d of '%s' from Sonarr",
+							season.SeasonNumber, s.Title)))
+				}
+			}
+
+			// Unmonitor deleted seasons
+			for i := range s.Seasons {
+				for _, seasonIdx := range action.seasonIdxs {
+					if seasonIdx < len(seasons) && s.Seasons[i].SeasonNumber == seasons[seasonIdx].SeasonNumber {
+						s.Seasons[i].Monitored = false
 					}
 				}
 			}
-		}
-	} else {
-		// Delete selected episodefiles
-		selectedSeason := &selectedSeries.Seasons[seasonIndex-1]
-		selectedSeason.Monitored = false
-		fmt.Printf(Yellow+"Are you sure you want to delete Season %d of '%s'? (y/N): "+Reset, selectedSeason.SeasonNumber, selectedSeries.Title)
-		confirmInput, _ := reader.ReadString('\n')
-		confirmInput = strings.TrimSpace(confirmInput)
-		if strings.ToLower(confirmInput) != "y" {
-			fmt.Printf("Skipped deletion of Season %d of series '%s'.\n", selectedSeason.SeasonNumber, selectedSeries.Title)
-		} else {
-			episodeFiles, err := sonarrClient.GetEpiosdeFilesForSeries(selectedSeries.ID, &selectedSeason.SeasonNumber)
-			if err != nil {
-				fmt.Printf("Error getting season episode files: %v\n", err)
-			}
-			err = sonarrClient.DeleteEpisodeFiles(episodeFiles)
-			if err != nil {
-				fmt.Printf("Error deleting episodes: %v\n", err)
+			if err := sonarrClient.UpdateSeries(s); err != nil {
+				results = append(results, tui.WarningStyle.Render(
+					fmt.Sprintf("Failed to unmonitor deleted seasons: %s", err)))
 			} else {
-				fmt.Printf(Green+"Season %d of series '%s' successfully deleted from Sonarr.\n"+Reset, selectedSeason.SeasonNumber, selectedSeries.Title)
+				results = append(results, tui.SuccessStyle.Render("Unmonitored deleted seasons in Sonarr"))
 			}
-
-		}
-		// Update the series to unmonitor the deleted season.
-		err := sonarrClient.UpdateSeries(selectedSeries)
-		if err != nil {
-			fmt.Printf("Error removing season %d monitoring. This means the series will be downloaded automatically again. ERROR: %v\n", selectedSeason.SeasonNumber, err)
-		} else {
-			fmt.Printf(Green+"Season %d of series '%s' successfully unmonitored in Sonarr.\n"+Reset, selectedSeason.SeasonNumber, selectedSeries.Title)
 		}
 
+		return results
 	}
+
+	model := tui.NewSelectTableModel("Select Series to Delete", seriesColumns(), fetchFn, deleteFn)
+	if _, err := tea.NewProgram(model).Run(); err != nil {
+		fmt.Println(tui.ErrorStyle.Render("Fatal error: " + err.Error()))
+		os.Exit(1)
+	}
+}
+
+// deleteEntireSeries deletes a series from Sonarr and its request from Overseer.
+func deleteEntireSeries(s sonarr.Series, sonarrClient *sonarr.SonarrClient, overseerClient *overseer.OverseerClient) []string {
+	var results []string
+
+	err := sonarrClient.DeleteSeries(s.ID)
+	if err != nil {
+		results = append(results, tui.ErrorStyle.Render(fmt.Sprintf("Sonarr delete failed for '%s': %s", s.Title, err)))
+	} else {
+		results = append(results, tui.SuccessStyle.Render(fmt.Sprintf("Deleted '%s' from Sonarr", s.Title)))
+	}
+
+	mediaItems, err := overseerClient.GetMedia()
+	if err != nil {
+		results = append(results, tui.WarningStyle.Render("Could not fetch Overseer media: "+err.Error()))
+		return results
+	}
+
+	media, err := FindMediaItemByTvdbId(s.TvdbID, mediaItems)
+	if err != nil {
+		return results
+	}
+
+	err = overseerClient.DeleteMedia(media.Id)
+	if err != nil {
+		results = append(results, tui.ErrorStyle.Render(fmt.Sprintf("Overseer delete failed for '%s': %s", s.Title, err)))
+	} else {
+		results = append(results, tui.SuccessStyle.Render(fmt.Sprintf("Deleted '%s' from Overseer", s.Title)))
+	}
+
+	return results
 }
