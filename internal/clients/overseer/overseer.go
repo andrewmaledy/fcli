@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 type OverseerClient struct {
@@ -20,7 +21,7 @@ func NewOverseerClient(baseURL string, apiKey string) *OverseerClient {
 	return &OverseerClient{
 		BaseURL: baseURL,
 		APIKey:  apiKey,
-		Client:  &http.Client{},
+		Client:  &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -52,36 +53,33 @@ func (oc *OverseerClient) GetMedia() ([]Media, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %v", err)
 		}
-
 		oc.setHeaders(req)
 
 		resp, err := oc.Client.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make request: %v", err)
 		}
-		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			bodyBytes, _ := io.ReadAll(resp.Body)
-			bodyString := string(bodyBytes)
-			return nil, fmt.Errorf("received non-OK HTTP status: %s, body: %s", resp.Status, bodyString)
+			resp.Body.Close()
+			return nil, fmt.Errorf("received non-OK HTTP status: %s, body: %s", resp.Status, string(bodyBytes))
 		}
 
 		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read response body: %v", err)
 		}
 
 		var apiResp GetMediaResponse
-		err = json.Unmarshal(body, &apiResp)
-		if err != nil {
+		if err = json.Unmarshal(body, &apiResp); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal response: %v", err)
 		}
 
 		allMedia = append(allMedia, apiResp.Results...)
-		totalResults := apiResp.PageInfo.Results
 		skip += take
-		if skip >= totalResults {
+		if skip >= apiResp.PageInfo.Results {
 			break
 		}
 	}
@@ -110,36 +108,33 @@ func (oc *OverseerClient) GetRequests() ([]Request, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %v", err)
 		}
-
 		oc.setHeaders(req)
 
 		resp, err := oc.Client.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to make request: %v", err)
 		}
-		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			bodyBytes, _ := io.ReadAll(resp.Body)
-			bodyString := string(bodyBytes)
-			return nil, fmt.Errorf("received non-OK HTTP status: %s, body: %s", resp.Status, bodyString)
+			resp.Body.Close()
+			return nil, fmt.Errorf("received non-OK HTTP status: %s, body: %s", resp.Status, string(bodyBytes))
 		}
 
 		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read response body: %v", err)
 		}
 
 		var apiResp getRequestsResponse
-		err = json.Unmarshal(body, &apiResp)
-		if err != nil {
+		if err = json.Unmarshal(body, &apiResp); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal response: %v", err)
 		}
 
 		allRequests = append(allRequests, apiResp.Results...)
-		totalResults := apiResp.PageInfo.Results
 		skip += take
-		if skip >= totalResults {
+		if skip >= apiResp.PageInfo.Results {
 			break
 		}
 	}
@@ -155,9 +150,7 @@ func (oc *OverseerClient) DeleteMedia(mediaId int) error {
 	if err != nil {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
-
 	oc.setHeaders(req)
-	req.Header.Set("accept", "*/*") // Optional: override specific headers
 
 	resp, err := oc.Client.Do(req)
 	if err != nil {
@@ -168,7 +161,6 @@ func (oc *OverseerClient) DeleteMedia(mediaId int) error {
 	if resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("received non-OK HTTP status: %s", resp.Status)
 	}
-
 	return nil
 }
 
@@ -179,13 +171,12 @@ func (oc *OverseerClient) UpdateRequest(requestID int, updatedRequest Request) e
 		return fmt.Errorf("failed to marshal request item: %v", err)
 	}
 
-	endpoint := fmt.Sprintf("%s/requests/%d", oc.BaseURL, requestID)
+	endpoint := fmt.Sprintf("%s/request/%d", oc.BaseURL, requestID)
 
 	req, err := http.NewRequest("PUT", endpoint, bytes.NewBuffer(requestBody))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
-
 	oc.setHeaders(req)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -198,21 +189,18 @@ func (oc *OverseerClient) UpdateRequest(requestID int, updatedRequest Request) e
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("received non-OK HTTP status: %s", resp.Status)
 	}
-
 	return nil
 }
 
 // DeleteRequest sends a DELETE request to the API to remove a request by its ID.
 func (oc *OverseerClient) DeleteRequest(requestID int) error {
-	endpoint := fmt.Sprintf("%s/requests/%d", oc.BaseURL, requestID)
+	endpoint := fmt.Sprintf("%s/request/%d", oc.BaseURL, requestID)
 
 	req, err := http.NewRequest("DELETE", endpoint, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %v", err)
 	}
-
 	oc.setHeaders(req)
-	req.Header.Set("accept", "*/*") // Optional: override specific headers
 
 	resp, err := oc.Client.Do(req)
 	if err != nil {
@@ -223,6 +211,5 @@ func (oc *OverseerClient) DeleteRequest(requestID int) error {
 	if resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("received non-OK HTTP status: %s", resp.Status)
 	}
-
 	return nil
 }

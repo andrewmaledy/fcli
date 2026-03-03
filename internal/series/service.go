@@ -172,13 +172,6 @@ func initializeSonarrClient(conf *config.Configuration) *sonarr.SonarrClient {
 // HandleGet displays all series in a styled static table.
 func HandleGet(sonarrAPIKey string, overseerAPIKey string, limit int) {
 	conf := config.GetConfig("", sonarrAPIKey, overseerAPIKey)
-	if len(sonarrAPIKey) > 0 {
-		conf.SonarrAPIKey = sonarrAPIKey
-	}
-	if len(overseerAPIKey) > 0 {
-		conf.OverseerAPIKey = overseerAPIKey
-	}
-
 	sonarrClient := initializeSonarrClient(conf)
 
 	allSeries, err := sonarrClient.GetAllSeries()
@@ -205,13 +198,6 @@ func HandleGet(sonarrAPIKey string, overseerAPIKey string, limit int) {
 // entire series or individual seasons.
 func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, limit int) {
 	conf := config.GetConfig("", sonarrAPIKey, overseerAPIKey)
-	if len(sonarrAPIKey) > 0 {
-		conf.SonarrAPIKey = sonarrAPIKey
-	}
-	if len(overseerAPIKey) > 0 {
-		conf.OverseerAPIKey = overseerAPIKey
-	}
-
 	sonarrClient := sonarr.NewSonarrClient(conf.SonarrURL, conf.SonarrAPIKey)
 	overseerClient := overseer.NewOverseerClient(conf.OverseerURL, conf.OverseerAPIKey)
 
@@ -281,7 +267,7 @@ func HandleSearchAndDeleteSeries(sonarrAPIKey string, overseerAPIKey string, lim
 					continue
 				}
 				season := seasons[seasonIdx]
-				episodeFiles, err := sonarrClient.GetEpiosdeFilesForSeries(s.ID, &season.SeasonNumber)
+				episodeFiles, err := sonarrClient.GetEpisodeFilesForSeries(s.ID, &season.SeasonNumber)
 				if err != nil {
 					results = append(results, tui.ErrorStyle.Render(
 						fmt.Sprintf("Failed to get episode files for %s S%d: %s",

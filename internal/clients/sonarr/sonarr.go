@@ -5,17 +5,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type SonarrClient struct {
-	baseURL string
-	apiKey  string
+	baseURL    string
+	apiKey     string
+	httpClient *http.Client
 }
 
 func NewSonarrClient(baseURL, apiKey string) *SonarrClient {
 	return &SonarrClient{
-		baseURL: baseURL,
-		apiKey:  apiKey,
+		baseURL:    baseURL,
+		apiKey:     apiKey,
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -34,8 +37,8 @@ func (c *SonarrClient) GetAllSeries() ([]Series, error) {
 	}
 	c.setHeaders(req)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching series: %v", err)
 	}
@@ -49,8 +52,8 @@ func (c *SonarrClient) GetAllSeries() ([]Series, error) {
 	return series, nil
 }
 
-// GetEpisodeFiles fetches all episode files for a specific series from the Sonarr API.
-func (c *SonarrClient) GetEpiosdeFilesForSeries(seriesID int, seasonNumber *int) ([]EpisodeFile, error) {
+// GetEpisodeFilesForSeries fetches all episode files for a specific series from the Sonarr API.
+func (c *SonarrClient) GetEpisodeFilesForSeries(seriesID int, seasonNumber *int) ([]EpisodeFile, error) {
 	params := fmt.Sprintf("/episodefile?seriesId=%d", seriesID)
 	req, err := http.NewRequest("GET", c.baseURL+params, nil)
 	if err != nil {
@@ -58,8 +61,8 @@ func (c *SonarrClient) GetEpiosdeFilesForSeries(seriesID int, seasonNumber *int)
 	}
 	c.setHeaders(req)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch episode files: %v", err)
 	}
@@ -90,7 +93,7 @@ func (c *SonarrClient) GetEpiosdeFilesForSeries(seriesID int, seasonNumber *int)
 
 // UpdateSeries sends a PUT request to the Sonarr API to update a series by its ID.
 func (c *SonarrClient) UpdateSeries(series Series) error {
-	client := &http.Client{}
+
 
 	// Convert the Series struct to JSON.
 	requestBody, err := json.Marshal(series)
@@ -110,7 +113,7 @@ func (c *SonarrClient) UpdateSeries(series Series) error {
 	req.Header.Set("Content-Type", "application/json")
 
 	// Execute the HTTP request.
-	resp, err := client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to update series: %v", err)
 	}
@@ -126,7 +129,7 @@ func (c *SonarrClient) UpdateSeries(series Series) error {
 
 // DeleteSeries deletes a specific series from the Sonarr API.
 func (c *SonarrClient) DeleteSeries(seriesID int) error {
-	client := &http.Client{}
+
 
 	// Construct the API endpoint for the DELETE request.
 	endpoint := fmt.Sprintf("%s/series/%d?deleteFiles=true", c.baseURL, seriesID)
@@ -142,7 +145,7 @@ func (c *SonarrClient) DeleteSeries(seriesID int) error {
 	req.Header.Set("Accept", "*/*")
 
 	// Execute the HTTP request.
-	resp, err := client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to delete series: %v", err)
 	}
@@ -190,8 +193,8 @@ func (c *SonarrClient) DeleteEpisodeFiles(episodeFiles []EpisodeFile) error {
 	req.Header.Set("Accept", "*/*")
 
 	// Execute the HTTP request.
-	client := &http.Client{}
-	resp, err := client.Do(req)
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to delete episode files: %v", err)
 	}

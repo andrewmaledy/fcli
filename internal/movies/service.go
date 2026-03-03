@@ -145,13 +145,6 @@ func movieToListItem(movie radarr.Movie) tui.ListItem {
 
 func HandleGet(radarrAPIKey string, overseerAPIKey string, limit int, skip int) {
 	conf := config.GetConfig("", radarrAPIKey, overseerAPIKey)
-	if len(radarrAPIKey) > 0 {
-		conf.RadarrAPIKey = radarrAPIKey
-	}
-	if len(overseerAPIKey) > 0 {
-		conf.OverseerAPIKey = overseerAPIKey
-	}
-
 	radarrClient := initializeRadarrClient(conf)
 
 	radarrMovies, err := radarrClient.GetMovies()
